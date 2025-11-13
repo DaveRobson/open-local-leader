@@ -1,4 +1,4 @@
-import React, {type ChangeEvent, type FormEvent, useEffect, useMemo, useState} from 'react';
+import {type ChangeEvent, type FormEvent, useEffect, useMemo, useState} from 'react';
 import {
     createUserWithEmailAndPassword,
     GoogleAuthProvider,
@@ -6,7 +6,7 @@ import {
     signInWithPopup,
     signOut,
 } from 'firebase/auth';
-import {deleteDoc, doc, serverTimestamp, setDoc, updateDoc, arrayUnion, arrayRemove} from 'firebase/firestore';
+import {deleteDoc, doc, serverTimestamp, setDoc, updateDoc} from 'firebase/firestore';
 import {ChevronRight, Filter, Globe, LogOut, MapPin, Plus, Search, ShieldCheck, Trash2, Trophy, X} from 'lucide-react';
 
 import {auth, db} from './config/firebase';
@@ -35,8 +35,8 @@ export default function App() {
     const [viewState, setViewState] = useState<ViewState>('landing');
     const [myGymId, setMyGymId] = useState<string>('');
     const [filterGym, setFilterGym] = useState<string>('');
-    const {athletes, admins, isAdmin, gyms, loading} = useApp(viewState, filterGym, myGymId);
-    const {profileExists, loadingProfile} = useUserProfile(user);
+    const {athletes, isAdmin, gyms, loading} = useApp(viewState, filterGym, myGymId);
+    const {profileExists, loadingProfile, userProfile} = useUserProfile(user);
 
     const [filterGender, setFilterGender] = useState<GenderFilter>('all');
     const [filterAgeGroup, setFilterAgeGroup] = useState<AgeGroupFilter>('all');
@@ -48,11 +48,12 @@ export default function App() {
     const [isScoreModalOpen, setIsScoreModalOpen] = useState<boolean>(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
     const [isCreateGymModalOpen, setIsCreateGymModalOpen] = useState<boolean>(false);
+    const [isSelectGymModalOpen, setIsSelectGymModalOpen] = useState<boolean>(false);
     const [selectedGymId, setSelectedGymId] = useState<string>('');
     const [editingAthlete, setEditingAthlete] = useState<AthleteWithRank | null>(null);
 
     const [newAthlete, setNewAthlete] = useState<NewAthleteForm>({
-        name: '', division: 'Rx', gender: 'M', age: '', gymId: ''
+        name: '', division: 'Rx', gender: 'M', age: ''
     });
     const [newGymName, setNewGymName] = useState<string>('');
     const [scoreForm, setScoreForm] = useState<ScoreForm>({
@@ -79,14 +80,24 @@ export default function App() {
         openGymFromUrl();
     }, []);
 
-    useEffect(() => {
-        // If the user is logged in and we are still on the landing page,
-        // automatically transition to the global app view.
-        // This makes the global leaderboard the default experience post-login.
-        if (user && !authLoading && viewState === 'landing' && !window.location.search.includes('gymId')) {
-            enterApp(''); // Enter global view
+
+    const enterApp = (gymIdToSet: string) => {
+        if (gymIdToSet) {
+            setMyGymId(gymIdToSet);
+            setFilterGym(gymIdToSet);
+            window.history.pushState({}, '', `?gymId=${gymIdToSet}`);
+        } else {
+            setMyGymId(''); // Clear myGymId for global view
+            window.history.pushState({}, '', '/');
         }
-    }, [user, authLoading, viewState]);
+        setViewState('app');
+    };
+
+    useEffect(() => {
+        if (user && !loadingProfile && viewState === 'landing') {
+            enterApp('');
+        }
+    }, [user, loadingProfile, userProfile, viewState]);
 
     useEffect(() => {
         const openProfile = () => {
@@ -104,6 +115,24 @@ export default function App() {
         return calculateRankings(athletes, searchTerm, filterDivision, filterGender, filterAgeGroup);
     }, [athletes, searchTerm, filterDivision, filterGender, filterAgeGroup]);
 
+    const displayedAthletes = useMemo(() => {
+        if (activeTab === 'leaderboard' || activeTab === 'admin') {
+            return rankedAthletes;
+        }
+
+        // For workout-specific tabs, re-sort the list based on that workout's score
+        return [...rankedAthletes].sort((a, b) => {
+            const workoutKey = activeTab as 'w1' | 'w2' | 'w3';
+            const scoreA = a[workoutKey] || 0;
+            const scoreB = b[workoutKey] || 0;
+
+            // Athletes with no score go to the bottom
+            if (scoreA === 0 && scoreB > 0) return 1;
+            if (scoreB === 0 && scoreA > 0) return -1;
+            return scoreB - scoreA; // Higher score is better
+        });
+    }, [rankedAthletes, activeTab]);
+
     const userAthlete = useMemo(() => {
         return rankedAthletes.find(a => a.createdBy === user?.uid);
     }, [rankedAthletes, user]);
@@ -115,13 +144,13 @@ export default function App() {
 
         for (const athlete of athletes) {
             if (athlete.w1 > 0 && !athlete.w1_verified) {
-                unverified.push({ athlete, workout: 'w1', score: athlete.w1, workoutLabel: '25.1' });
+                unverified.push({ athlete, workout: 'w1', score: athlete.w1, workoutLabel: '26.1' });
             }
             if (athlete.w2 > 0 && !athlete.w2_verified) {
-                unverified.push({ athlete, workout: 'w2', score: athlete.w2, workoutLabel: '25.2' });
+                unverified.push({ athlete, workout: 'w2', score: athlete.w2, workoutLabel: '26.2' });
             }
             if (athlete.w3 > 0 && !athlete.w3_verified) {
-                unverified.push({ athlete, workout: 'w3', score: athlete.w3, workoutLabel: '25.3' });
+                unverified.push({ athlete, workout: 'w3', score: athlete.w3, workoutLabel: '26.3' });
             }
         }
         return unverified;
@@ -160,6 +189,8 @@ export default function App() {
             }
         } catch (error: unknown) {
             // Map common Firebase error codes to user-friendly messages
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
             switch (error.code) {
                 case 'auth/invalid-email':
                     setAuthError('Please enter a valid email address.');
@@ -174,16 +205,17 @@ export default function App() {
         }
     };
 
-    const enterApp = (gymIdToSet: string) => {
-        if (gymIdToSet) {
-            setMyGymId(gymIdToSet);
-            setFilterGym(gymIdToSet);
-            window.history.pushState({}, '', `?gymId=${gymIdToSet}`);
-        } else {
-            setMyGymId(''); // Clear myGymId for global view
-            window.history.pushState({}, '', '/');
+    const handleSetAthletesGym = async (userId: string, gymId: string) => {
+        const athleteDocRef = doc(db, 'cf_leaderboard_athletes', userId);
+        try {
+            await updateDoc(athleteDocRef, {
+                gymId: gymId
+            });
+            setIsSelectGymModalOpen(false);
+            enterApp('');
+        } catch (error) {
+            console.error("Error creating gym", error);
         }
-        setViewState('app');
     };
 
     const handleCreateGym = async (e: FormEvent<HTMLFormElement>) => {
@@ -198,6 +230,7 @@ export default function App() {
                 name: newGymName,
                 admins: [user.uid]
             });
+            await handleSetAthletesGym(user.uid, newGymId);
             setNewGymName('');
             setIsCreateGymModalOpen(false);
             enterApp(newGymId);
@@ -208,7 +241,7 @@ export default function App() {
 
     const handleAddAthlete = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!newAthlete.name.trim() || !newAthlete.gymId || !user) return;
+        if (!newAthlete.name.trim() || !user) return;
 
         try {
             const athleteDocRef = doc(db, 'cf_leaderboard_athletes', user.uid);
@@ -217,7 +250,7 @@ export default function App() {
                 division: newAthlete.division,
                 gender: newAthlete.gender,
                 age: parseInt(String(newAthlete.age), 10) || 18,
-                gymId: newAthlete.gymId,
+                gymId: myGymId,
                 w1: 0, w2: 0, w3: 0,
                 w1_verified: false, w2_verified: false, w3_verified: false,
                 role: 'member',
@@ -227,6 +260,7 @@ export default function App() {
             setNewAthlete({name: '', division: 'Rx', gender: 'M', age: '', gymId: ''});
             setIsAddModalOpen(false);
             setIsProfileModalOpen(false);
+            setIsSelectGymModalOpen(true);
         } catch (error) {
             console.error("Error adding athlete", error);
         }
@@ -266,6 +300,15 @@ export default function App() {
             console.error(err);
         }
     }
+
+    const handleCloseProfileModal = () => {
+        setIsProfileModalOpen(false);
+        // If the user closes the modal and still doesn't have a profile,
+        // sign them out to prevent them from using the app without a profile.
+        if (user && !profileExists) {
+            signOut(auth);
+        }
+    };
 
     const openScoreModal = (athlete: AthleteWithRank) => {
         setEditingAthlete(athlete);
@@ -405,6 +448,12 @@ export default function App() {
                                 Create a New Gym
                             </button>
 
+                            <button onClick={() => enterApp('')}
+                                    className="text-zinc-500 text-xs hover:text-emerald-400 py-2 transition-colors"
+                            >
+                                or view the Global Leaderboard
+                            </button>
+
                             <button onClick={() => {
                                 signOut(auth);
                                 setViewState('landing');
@@ -415,27 +464,7 @@ export default function App() {
                     )}
                 </div>
 
-                <Modal
-                    isOpen={isCreateGymModalOpen}
-                    onClose={() => setIsCreateGymModalOpen(false)}
-                    title="Create a New Gym"
-                >
-                    <form onSubmit={handleCreateGym}>
-                        <Input
-                            label="Gym Name"
-                            placeholder="e.g. CrossFit Central"
-                            value={newGymName}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => setNewGymName(e.target.value)}
-                            autoFocus
-                        />
-                        <button
-                            type="submit"
-                            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors uppercase tracking-wide"
-                        >
-                            Create Gym
-                        </button>
-                    </form>
-                </Modal>
+
             </div>
         );
     }
@@ -551,14 +580,14 @@ export default function App() {
                     className="max-w-6xl mx-auto px-4 flex overflow-x-auto no-scrollbar gap-6 border-b border-zinc-800/50 pt-2">
                     {[
                         {id: 'leaderboard', label: 'Overall'},
-                        {id: 'w1', label: '25.1'},
-                        {id: 'w2', label: '25.2'},
-                        {id: 'w3', label: '25.3'},
+                        {id: 'w1', label: '26.1'},
+                        {id: 'w2', label: '26.2'},
+                        {id: 'w3', label: '26.3'},
                         ...(isAdmin ? [{id: 'admin', label: 'Admin'}] : []),
                     ].map(tab => (
                         <button
                             key={tab.id}
-                            onClick={() => tab.action ? tab.action() : setActiveTab(tab.id as ActiveTab)}
+                            onClick={() => setActiveTab(tab.id as ActiveTab)}
                             className={`
                                 py-3 text-sm font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors
                                 ${activeTab === tab.id
@@ -576,7 +605,7 @@ export default function App() {
 
                 <div className="flex justify-between items-end mb-4">
                     <p className="text-xs text-zinc-500 font-medium uppercase tracking-wide">
-                        Showing {rankedAthletes.length} Athletes
+                        Showing {displayedAthletes.length} Athletes
                         {filterGym ? ` in ${gyms.find(g => g.id === filterGym)?.name}` : ' Globally'}
                     </p>
 
@@ -629,12 +658,12 @@ export default function App() {
                         <p className="text-zinc-500 text-sm mt-1">Try adjusting your search or filters.</p>
                     </div>
                 ) : (
-                    <div className="grid gap-3">
-                        {rankedAthletes.map((athlete, index) => (
+                    <div className="grid gap-3" key={activeTab}>
+                        {displayedAthletes.map((athlete, index) => (
                             <div
                                 key={athlete.id}
                                 onClick={() => (isAdmin || athlete.createdBy === user?.uid) && openScoreModal(athlete)}
-                                className={`group bg-zinc-900/40 ${(isAdmin || athlete.createdBy === user?.uid) ? 'hover:bg-zinc-900 cursor-pointer' : ''} border border-zinc-800/60 hover:border-emerald-500/30 rounded-xl p-4 transition-all relative overflow-hidden`}
+                                className={`group bg-zinc-900/40 ${(isAdmin || athlete.createdBy === user?.uid) ? 'hover:bg-zinc-900 cursor-pointer' : ''} border border-zinc-800/60 hover:border-emerald-500/30 rounded-xl p-4 transition-all relative overflow-hidden animate-in fade-in`}
                             >
                                 <div
                                     className="absolute top-0 left-0 w-1 h-full bg-emerald-500/0 group-hover:bg-emerald-500 transition-colors"/>
@@ -642,7 +671,7 @@ export default function App() {
                                 <div className="flex items-center gap-4">
                                     <div className="flex flex-col items-center justify-center w-10 sm:w-12 shrink-0">
                                         <span
-                                            className="text-2xl font-black text-zinc-500 group-hover:text-emerald-500 italic transition-colors">
+                                            className={`text-2xl font-black ${activeTab === 'leaderboard' ? 'text-zinc-500 group-hover:text-emerald-500' : 'text-emerald-500'} italic transition-colors`}>
                                           #{index + 1}
                                         </span>
                                     </div>
@@ -717,7 +746,7 @@ export default function App() {
                                                    {athlete[activeTab as keyof Athlete] || '--'}
                                                 </span>
                                                 <span className="text-xs text-zinc-500 font-medium uppercase">
-                                                  {athlete[activeTab as keyof Athlete] ? `Reps (Rank ${athlete[`${activeTab}_rank` as keyof AthleteWithRank]})` : 'No Score Logged'}
+                                                  {athlete[activeTab as keyof Athlete] ? `Score (${athlete[`${activeTab}_rank` as keyof AthleteWithRank]} Points)` : 'No Score Logged'}
                                                 </span>
                                             </div>
                                         )}
@@ -733,7 +762,7 @@ export default function App() {
 
             <Modal
                 isOpen={isProfileModalOpen}
-                onClose={() => setIsProfileModalOpen(false)}
+                onClose={handleCloseProfileModal}
                 title="Create Your Profile"
             >
                 <form onSubmit={handleAddAthlete}>
@@ -746,18 +775,6 @@ export default function App() {
                             name: e.target.value
                         })}
                         autoFocus
-                    />
-                    <Select
-                        label="Select Your Gym"
-                        options={[
-                            {label: 'Choose a gym...', value: ''},
-                            ...gyms.map(gym => ({label: gym.name, value: gym.id}))
-                        ]}
-                        value={newAthlete.gymId}
-                        onChange={(e: ChangeEvent<HTMLSelectElement>) => setNewAthlete({
-                            ...newAthlete,
-                            gymId: e.target.value
-                        })}
                     />
                     <div className="grid grid-cols-2 gap-4">
                         <Select
@@ -798,11 +815,15 @@ export default function App() {
                     />
                     <button
                         type="submit"
-                        disabled={!newAthlete.gymId || !newAthlete.name}
+                        disabled={!newAthlete.name}
                         className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors uppercase tracking-wide disabled:bg-zinc-700 disabled:cursor-not-allowed"
                     >
                         Create Profile
-                    </button>                    
+                    </button>
+                    <p className="text-[10px] text-zinc-500 text-center mt-3">
+                        This will create your profile in the <span
+                        className="text-white font-bold">{gyms.find(g => g.id === myGymId)?.name}</span> gym.
+                    </p>
                 </form>
             </Modal>
 
@@ -884,7 +905,7 @@ export default function App() {
                         <div className="grid grid-cols-1 gap-3 mb-6">
                             <div className="p-3 bg-zinc-950/50 rounded-lg border border-zinc-800">
                                 <div className="flex items-center justify-between mb-2">
-                                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">25.1
+                                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">26.1
                                         Score</h4>
                                     {isAdmin && (
                                         <div className="flex items-center">
@@ -912,7 +933,7 @@ export default function App() {
                             </div>
                             <div className="p-3 bg-zinc-950/50 rounded-lg border border-zinc-800">
                                 <div className="flex items-center justify-between mb-2">
-                                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">25.2
+                                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">26.2
                                         Score</h4>
                                     {isAdmin && (
                                         <div className="flex items-center">
@@ -940,7 +961,7 @@ export default function App() {
                             </div>
                             <div className="p-3 bg-zinc-950/50 rounded-lg border border-zinc-800">
                                 <div className="flex items-center justify-between mb-2">
-                                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">25.3
+                                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">26.3
                                         Score</h4>
                                     {isAdmin && (
                                         <div className="flex items-center">
@@ -1023,6 +1044,76 @@ export default function App() {
                     </form>
                 </Modal>
             )}
+
+            <Modal
+                isOpen={isSelectGymModalOpen}
+                onClose={() => setIsSelectGymModalOpen(false)}
+                title="Select a New Gym"
+            >
+
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                    <Select
+                        label="Select a Gym"
+                        options={[{label: 'Select a gym...', value: ''}, ...gyms.map(gym => ({label: gym.name, value: gym.id}))]}
+                        value={selectedGymId}
+                        onChange={(e) => setSelectedGymId(e.target.value)}
+                    />
+                    <button
+                        onClick={() => handleSetAthletesGym(user.uid, selectedGymId)}
+                        disabled={!selectedGymId}
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:bg-zinc-700 disabled:text-zinc-400 disabled:cursor-not-allowed"
+                    >
+                        <ChevronRight size={18}/>
+                        Lets Go!
+                    </button>
+
+                    <div className="relative py-2">
+                        <div className="absolute inset-0 flex items-center"><span
+                            className="w-full border-t border-zinc-800"></span></div>
+                        <div className="relative flex justify-center text-xs uppercase"><span
+                            className="bg-zinc-950 px-2 text-zinc-500">or</span></div>
+                    </div>
+
+                    <button
+                        onClick={() => {
+                            setIsSelectGymModalOpen(false)
+                            setIsCreateGymModalOpen(true)
+                        }
+                    }
+                        className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all"
+                    >
+                        <Plus size={18}/>
+                        Create a New Gym
+                    </button>
+
+                    <button onClick={() => {
+                        signOut(auth);
+                        setViewState('landing');
+                    }} className="text-zinc-600 text-xs hover:text-zinc-400 py-2">
+                        Sign Out
+                    </button>
+                </div>
+            </Modal>
+            <Modal
+                title="Create a New Gym"
+                isOpen={isCreateGymModalOpen}
+                onClose={() => setIsCreateGymModalOpen(false)}>
+                <form onSubmit={handleCreateGym}>
+                    <Input
+                        label="Gym Name"
+                        placeholder="e.g. CrossFit Central"
+                        value={newGymName}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setNewGymName(e.target.value)}
+                        autoFocus
+                    />
+                    <button
+                        type="submit"
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors uppercase tracking-wide"
+                    >
+                        Create Gym
+                    </button>
+                </form>
+            </Modal>
 
         </div>
     );
