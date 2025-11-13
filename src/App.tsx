@@ -1,375 +1,232 @@
-import React, {type ChangeEvent, type FC, type FormEvent, type ReactNode, useEffect, useMemo, useState} from 'react';
-import {type FirebaseApp, initializeApp} from 'firebase/app';
+import React, {type ChangeEvent, type FormEvent, useEffect, useMemo, useState} from 'react';
 import {
-    type Auth,
-    getAuth,
+    createUserWithEmailAndPassword,
     GoogleAuthProvider,
-    onAuthStateChanged,
-    signInAnonymously,
+    signInWithEmailAndPassword,
     signInWithPopup,
     signOut,
-    type User
 } from 'firebase/auth';
+import {deleteDoc, doc, serverTimestamp, setDoc, updateDoc, arrayUnion, arrayRemove} from 'firebase/firestore';
+import {ChevronRight, Filter, Globe, LogOut, MapPin, Plus, Search, ShieldCheck, Trash2, Trophy, X} from 'lucide-react';
+
+import {auth, db} from './config/firebase';
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    type DocumentData,
-    Firestore,
-    getFirestore,
-    limit,
-    onSnapshot,
-    query,
-    Query,
-    QuerySnapshot,
-    serverTimestamp,
-    updateDoc,
-    where
-} from 'firebase/firestore';
-import {ChevronRight, Filter, Globe, LogOut, MapPin, Plus, Search, Trash2, Trophy, X} from 'lucide-react';
-
-const __firebase_config = {
-    apiKey: import.meta.env.VITE_API_KEY,
-    authDomain: import.meta.env.VITE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_APP_ID,
-    measurementId: import.meta.env.VITE_MEASUREMENT_ID
-};
-
-// --- Firebase Config & Init ---
-const app: FirebaseApp = initializeApp(__firebase_config);
-const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
-
-// --- Types & Interfaces ---
-interface Athlete {
-    id: string;
-    name: string;
-    division: 'Rx' | 'Scaled' | 'Foundations';
-    gender: 'M' | 'F';
-    age: number;
-    gymId: string;
-    w1: number;
-    w2: number;
-    w3: number;
-    createdAt: never; // serverTimestamp
-    createdBy: string;
-    lastEditedBy?: string;
-}
-
-interface AthleteWithRank extends Athlete {
-    w1_rank?: number;
-    w2_rank?: number;
-    w3_rank?: number;
-    totalPoints: number;
-    participation: number;
-}
-
-interface ScoreForm {
-    w1: string | number;
-    w2: string | number;
-    w3: string | number;
-    division: 'Rx' | 'Scaled' | 'Foundations';
-    age: string | number;
-    gender: 'M' | 'F';
-}
-
-interface NewAthleteForm {
-    name: string;
-    division: 'Rx' | 'Scaled' | 'Foundations';
-    gender: 'M' | 'F';
-    age: string | number;
-}
-
-type ViewState = 'landing' | 'app';
-type DivisionFilter = 'all' | 'Rx' | 'Scaled' | 'Foundations';
-type GenderFilter = 'all' | 'M' | 'F';
-type AgeGroupFilter = string; // e.g., 'all', '18-34', etc.
-type ActiveTab = 'leaderboard' | 'w1' | 'w2' | 'w3';
-
-const AGE_GROUPS = [
-    { label: 'All Ages', value: 'all' },
-    { label: 'Teens (14-17)', value: '14-17' },
-    { label: 'Open (18-34)', value: '18-34' },
-    { label: 'Masters (35-39)', value: '35-39' },
-    { label: 'Masters (40-44)', value: '40-44' },
-    { label: 'Masters (45-49)', value: '45-49' },
-    { label: 'Masters (50-54)', value: '50-54' },
-    { label: 'Masters (55+)', value: '55+' }
-];
-
-// --- Helper Components ---
-
-interface ModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    title: string;
-    children: ReactNode;
-}
-
-const Modal: FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
-    if (!isOpen) return null;
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm">
-            <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-                    <h3 className="text-lg font-bold text-white">{title}</h3>
-                    <button onClick={onClose} className="p-1 text-zinc-400 hover:text-white transition-colors">
-                        <X size={20} />
-                    </button>
-                </div>
-                <div className="p-4 max-h-[80vh] overflow-y-auto">
-                    {children}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// Use React.InputHTMLAttributes to get all standard input props
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-    label: string;
-}
-
-const Input: FC<InputProps> = ({ label, ...props }) => (
-    <div className="mb-4">
-        <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wider mb-1.5">
-            {label}
-        </label>
-        <input
-            className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all placeholder-zinc-600"
-            {...props}
-        />
-    </div>
-);
-
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-    label: string;
-    options: { label: string; value: string }[];
-}
-
-const Select: FC<SelectProps> = ({ label, options, ...props }) => (
-    <div className="mb-4">
-        <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wider mb-1.5">
-            {label}
-        </label>
-        <select
-            className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all appearance-none"
-            {...props}
-        >
-            {options.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-        </select>
-    </div>
-);
-
-// --- Main Application Component ---
+    type ActiveTab,
+    type AgeGroupFilter,
+    type Athlete,
+    type AthleteWithRank,
+    type DivisionFilter,
+    type GenderFilter,
+    type NewAthleteForm,
+    type ScoreForm, 
+    type ViewState,
+} from './types';
+import {AGE_GROUPS} from './constants/ageGroups';
+import Modal from './components/Modal';
+import Input from './components/Input';
+import Select from './components/Select';
+import {useAuth} from './hooks/useAuth';
+import {calculateRankings} from './utils/ranking';
+import {useUserProfile} from "./hooks/useUserProfile.ts";
+import {useApp} from "./hooks/useApp.ts";
 
 export default function App() {
-    // Auth State
-    const [user, setUser] = useState<User | null>(null);
-    const [authLoading, setAuthLoading] = useState<boolean>(true);
-
-    // View Context
+    const {user, authLoading} = useAuth();
     const [viewState, setViewState] = useState<ViewState>('landing');
+    const [myGymId, setMyGymId] = useState<string>('');
+    const [filterGym, setFilterGym] = useState<string>('');
+    const {athletes, admins, isAdmin, gyms, loading} = useApp(viewState, filterGym, myGymId);
+    const {profileExists, loadingProfile} = useUserProfile(user);
 
-    // Data State
-    const [athletes, setAthletes] = useState<Athlete[]>([]);
-    const [loadingData, setLoadingData] = useState<boolean>(false);
-
-    // User's "Home" Gym
-    const [myGymId, setMyGymId] = useState<string>(localStorage.getItem('cf_gym_id') || '');
-
-    // --- FILTERS ---
-    const [filterGym, setFilterGym] = useState<string>(''); // Empty = All Gyms
     const [filterGender, setFilterGender] = useState<GenderFilter>('all');
     const [filterAgeGroup, setFilterAgeGroup] = useState<AgeGroupFilter>('all');
     const [filterDivision, setFilterDivision] = useState<DivisionFilter>('all');
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [activeTab, setActiveTab] = useState<ActiveTab>('leaderboard');
 
-    // Modals
     const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
     const [isScoreModalOpen, setIsScoreModalOpen] = useState<boolean>(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+    const [isCreateGymModalOpen, setIsCreateGymModalOpen] = useState<boolean>(false);
+    const [selectedGymId, setSelectedGymId] = useState<string>('');
     const [editingAthlete, setEditingAthlete] = useState<AthleteWithRank | null>(null);
 
-    // Forms
     const [newAthlete, setNewAthlete] = useState<NewAthleteForm>({
-        name: '', division: 'Rx', gender: 'M', age: ''
+        name: '', division: 'Rx', gender: 'M', age: '', gymId: ''
     });
+    const [newGymName, setNewGymName] = useState<string>('');
     const [scoreForm, setScoreForm] = useState<ScoreForm>({
-        w1: '', w2: '', w3: '', division: 'Rx', age: '', gender: 'M'
+        w1: '', w2: '', w3: '', w1_verified: false, w2_verified: false, w3_verified: false, division: 'Rx', age: '', gender: 'M'
     });
 
-    // --- Authentication ---
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (u) => {
-            setUser(u);
-            setAuthLoading(false);
+    // State for email/password auth
+    const [email, setEmail] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+    const [authError, setAuthError] = useState<string | null>(null);
 
-            if (u && myGymId) {
-                setFilterGym(myGymId);
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const gymIdFromUrl = urlParams.get('gymId');
+
+        const openGymFromUrl = () => {
+            if (gymIdFromUrl) {
+                setMyGymId(gymIdFromUrl);
+                setFilterGym(gymIdFromUrl);
                 setViewState('app');
             }
-        });
+        }
+        openGymFromUrl();
+    }, []);
 
-        return () => unsubscribe();
-    }, []); // myGymId removed to prevent re-running on auth
-
-    // --- Data Subscription ---
     useEffect(() => {
-        if (viewState !== 'app') return;
+        // If the user is logged in and we are still on the landing page,
+        // automatically transition to the global app view.
+        // This makes the global leaderboard the default experience post-login.
+        if (user && !authLoading && viewState === 'landing' && !window.location.search.includes('gymId')) {
+            enterApp(''); // Enter global view
+        }
+    }, [user, authLoading, viewState]);
 
-        setLoadingData(true);
-
-        let q: Query<DocumentData>;
-        const collectionRef = collection(db, 'cf_leaderboard_athletes');
-
-        if (filterGym) {
-            q = query(collectionRef, where('gymId', '==', filterGym));
-        } else {
-            q = query(collectionRef, limit(500));
+    useEffect(() => {
+        const openProfile = () => {
+            if (user && !profileExists && !loadingProfile && viewState === 'app') {
+                setIsProfileModalOpen(true);
+            } else {
+                setIsProfileModalOpen(false);
+            }
         }
 
-        const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
-            const data = snapshot.docs.map(doc => {
-                const docData = doc.data();
-                return {
-                    id: doc.id,
-                    ...docData,
-                    age: docData.age || 0,
-                    w1: docData.w1 || 0,
-                    w2: docData.w2 || 0,
-                    w3: docData.w3 || 0,
-                    division: docData.division || 'Scaled',
-                    gender: docData.gender || 'M',
-                } as Athlete;
+        openProfile();
+    }, [user, profileExists, loadingProfile, viewState]);
+
+    const rankedAthletes = useMemo(() => {
+        return calculateRankings(athletes, searchTerm, filterDivision, filterGender, filterAgeGroup);
+    }, [athletes, searchTerm, filterDivision, filterGender, filterAgeGroup]);
+
+    const userAthlete = useMemo(() => {
+        return rankedAthletes.find(a => a.createdBy === user?.uid);
+    }, [rankedAthletes, user]);
+
+    const pendingVerifications = useMemo(() => {
+        if (!isAdmin || !myGymId) return [];
+
+        const unverified: { athlete: Athlete, workout: 'w1' | 'w2' | 'w3', score: number, workoutLabel: string }[] = [];
+
+        for (const athlete of athletes) {
+            if (athlete.w1 > 0 && !athlete.w1_verified) {
+                unverified.push({ athlete, workout: 'w1', score: athlete.w1, workoutLabel: '25.1' });
+            }
+            if (athlete.w2 > 0 && !athlete.w2_verified) {
+                unverified.push({ athlete, workout: 'w2', score: athlete.w2, workoutLabel: '25.2' });
+            }
+            if (athlete.w3 > 0 && !athlete.w3_verified) {
+                unverified.push({ athlete, workout: 'w3', score: athlete.w3, workoutLabel: '25.3' });
+            }
+        }
+        return unverified;
+    }, [athletes, isAdmin, myGymId]);
+
+    const handleVerifyScore = async (athleteId: string, workout: 'w1' | 'w2' | 'w3') => {
+        if (!isAdmin) return;
+
+        try {
+            const athleteDocRef = doc(db, 'cf_leaderboard_athletes', athleteId);
+            await updateDoc(athleteDocRef, {
+                [`${workout}_verified`]: true,
+                lastEditedBy: user?.uid
             });
-            setAthletes(data);
-            setLoadingData(false);
-        });
-
-        return () => unsubscribe();
-    }, [viewState, filterGym]);
-
-    // --- Logic: Age Group Check ---
-    const isInAgeGroup = (age: number | string, group: string): boolean => {
-        const a = parseInt(age as string, 10);
-        if (isNaN(a)) return false;
-        switch (group) {
-            case '14-17': return a >= 14 && a <= 17;
-            case '18-34': return a >= 18 && a <= 34;
-            case '35-39': return a >= 35 && a <= 39;
-            case '40-44': return a >= 40 && a <= 44;
-            case '45-49': return a >= 45 && a <= 49;
-            case '50-54': return a >= 50 && a <= 54;
-            case '55+':   return a >= 55;
-            default: return true;
+        } catch (error) {
+            console.error("Error verifying score", error);
         }
     };
 
-    // --- Ranking Logic (Dynamic) ---
-    const rankedAthletes = useMemo((): AthleteWithRank[] => {
-        let processed: AthleteWithRank[] = athletes.map(a => ({ ...a, totalPoints: 0, participation: 0 }));
-
-        // 1. Apply Filters
-        if (filterDivision !== 'all') {
-            processed = processed.filter(a => a.division === filterDivision);
-        }
-        if (filterGender !== 'all') {
-            processed = processed.filter(a => a.gender === filterGender);
-        }
-        if (filterAgeGroup !== 'all') {
-            processed = processed.filter(a => isInAgeGroup(a.age, filterAgeGroup));
-        }
-        if (searchTerm) {
-            processed = processed.filter(a => a.name.toLowerCase().includes(searchTerm.toLowerCase()));
-        }
-
-        // 2. Calculate Ranks relative to FILTERED list
-        const getScore = (val: number | string | undefined) => val ? parseFloat(String(val)) : 0;
-
-        (['w1', 'w2', 'w3'] as const).forEach(w => {
-            processed.sort((a, b) => getScore(b[w]) - getScore(a[w]));
-
-            for (let i = 0; i < processed.length; i++) {
-                if (i > 0 && getScore(processed[i][w]) === getScore(processed[i-1][w])) {
-                    processed[i][`${w}_rank`] = processed[i-1][`${w}_rank`];
-                } else {
-                    processed[i][`${w}_rank`] = i + 1;
-                }
-            }
-        });
-
-        // 3. Total Points & Final Sort
-        processed.forEach(a => {
-            a.totalPoints = (a.w1_rank || 0) + (a.w2_rank || 0) + (a.w3_rank || 0);
-            a.participation = (a.w1 ? 1 : 0) + (a.w2 ? 1 : 0) + (a.w3 ? 1 : 0);
-        });
-
-        processed.sort((a, b) => {
-            if (b.participation !== a.participation) return b.participation - a.participation;
-            return a.totalPoints - b.totalPoints;
-        });
-
-        return processed;
-    }, [athletes, searchTerm, filterDivision, filterGender, filterAgeGroup]);
-
-
-    // --- Actions ---
-
-    const handleLogin = async (provider: 'google' | 'anon') => {
+    const handleLogin = async () => {
         try {
-            if (provider === 'google') {
-                await signInWithPopup(auth, new GoogleAuthProvider());
+            await signInWithPopup(auth, new GoogleAuthProvider());
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleEmailAuth = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setAuthError(null);
+        try {
+            if (authMode === 'signup') {
+                await createUserWithEmailAndPassword(auth, email, password);
             } else {
-                await signInAnonymously(auth);
+                await signInWithEmailAndPassword(auth, email, password);
             }
-        } catch (e) { console.error(e); }
+        } catch (error: unknown) {
+            // Map common Firebase error codes to user-friendly messages
+            switch (error.code) {
+                case 'auth/invalid-email':
+                    setAuthError('Please enter a valid email address.');
+                    break;
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                    setAuthError('Invalid email or password.');
+                    break;
+                default:
+                    setAuthError('An unexpected error occurred. Please try again.');
+            }
+        }
     };
 
     const enterApp = (gymIdToSet: string) => {
         if (gymIdToSet) {
             setMyGymId(gymIdToSet);
             setFilterGym(gymIdToSet);
-            localStorage.setItem('cf_gym_id', gymIdToSet);
+            window.history.pushState({}, '', `?gymId=${gymIdToSet}`);
         } else {
-            setFilterGym('');
+            setMyGymId(''); // Clear myGymId for global view
+            window.history.pushState({}, '', '/');
         }
         setViewState('app');
     };
 
-    const handleAddAthlete = async (e: FormEvent<HTMLFormElement>) => {
+    const handleCreateGym = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!newAthlete.name.trim() || !user) return;
+        if (!newGymName.trim() || !user) return;
 
-        let targetGymId = myGymId;
-        if (!targetGymId) {
-            const id = prompt("Please enter a Gym ID to associate this athlete with:");
-            if(!id) return;
-            targetGymId = id.toUpperCase();
-            setMyGymId(targetGymId);
-            localStorage.setItem('cf_gym_id', targetGymId);
-            setFilterGym(targetGymId);
-        }
+        const newGymId = newGymName.toUpperCase().replace(/\s/g, '-');
+        const gymDocRef = doc(db, 'gyms', newGymId);
 
         try {
-            await addDoc(collection(db, 'cf_leaderboard_athletes'), {
+            await setDoc(gymDocRef, {
+                name: newGymName,
+                admins: [user.uid]
+            });
+            setNewGymName('');
+            setIsCreateGymModalOpen(false);
+            enterApp(newGymId);
+        } catch (error) {
+            console.error("Error creating gym", error);
+        }
+    };
+
+    const handleAddAthlete = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!newAthlete.name.trim() || !newAthlete.gymId || !user) return;
+
+        try {
+            const athleteDocRef = doc(db, 'cf_leaderboard_athletes', user.uid);
+            await setDoc(athleteDocRef, {
                 name: newAthlete.name,
                 division: newAthlete.division,
                 gender: newAthlete.gender,
                 age: parseInt(String(newAthlete.age), 10) || 18,
-                gymId: targetGymId,
+                gymId: newAthlete.gymId,
                 w1: 0, w2: 0, w3: 0,
+                w1_verified: false, w2_verified: false, w3_verified: false,
+                role: 'member',
                 createdAt: serverTimestamp(),
                 createdBy: user.uid,
             });
-            setNewAthlete({ name: '', division: 'Rx', gender: 'M', age: '' });
+            setNewAthlete({name: '', division: 'Rx', gender: 'M', age: '', gymId: ''});
             setIsAddModalOpen(false);
+            setIsProfileModalOpen(false);
         } catch (error) {
             console.error("Error adding athlete", error);
         }
@@ -385,6 +242,9 @@ export default function App() {
                 w1: scoreForm.w1 ? parseFloat(String(scoreForm.w1)) : 0,
                 w2: scoreForm.w2 ? parseFloat(String(scoreForm.w2)) : 0,
                 w3: scoreForm.w3 ? parseFloat(String(scoreForm.w3)) : 0,
+                w1_verified: scoreForm.w1_verified,
+                w2_verified: scoreForm.w2_verified,
+                w3_verified: scoreForm.w3_verified,
                 division: scoreForm.division,
                 gender: scoreForm.gender,
                 age: parseInt(String(scoreForm.age), 10),
@@ -398,11 +258,11 @@ export default function App() {
     };
 
     const handleDeleteAthlete = async (id: string) => {
-        if(!confirm("Delete this athlete? This cannot be undone.")) return;
+        if (!confirm("Delete this athlete? This cannot be undone.")) return;
         try {
             await deleteDoc(doc(db, 'cf_leaderboard_athletes', id));
             setIsScoreModalOpen(false);
-        } catch(err) {
+        } catch (err) {
             console.error(err);
         }
     }
@@ -413,6 +273,9 @@ export default function App() {
             w1: athlete.w1 || '',
             w2: athlete.w2 || '',
             w3: athlete.w3 || '',
+            w1_verified: athlete.w1_verified || false,
+            w2_verified: athlete.w2_verified || false,
+            w3_verified: athlete.w3_verified || false,
             division: athlete.division,
             gender: athlete.gender || 'M',
             age: athlete.age || '',
@@ -420,9 +283,9 @@ export default function App() {
         setIsScoreModalOpen(true);
     };
 
-    // --- Views ---
 
-    if (authLoading) {
+
+    if (authLoading || loading || loadingProfile) {
         return (
             <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
@@ -430,14 +293,13 @@ export default function App() {
         );
     }
 
-    // LANDING PAGE
     if (!user || viewState === 'landing') {
         return (
             <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-4">
                 <div className="w-full max-w-md space-y-8 text-center">
                     <div className="flex justify-center mb-6">
                         <div className="bg-emerald-500/10 p-4 rounded-full ring-1 ring-emerald-500/20">
-                            <Trophy className="w-16 h-16 text-emerald-500" />
+                            <Trophy className="w-16 h-16 text-emerald-500"/>
                         </div>
                     </div>
 
@@ -453,107 +315,207 @@ export default function App() {
                     {!user ? (
                         <div className="space-y-3 mt-8">
                             <button
-                                onClick={() => handleLogin('google')}
+                                onClick={() => handleLogin()}
                                 className="w-full bg-white text-zinc-900 font-bold py-3 px-4 rounded-xl hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2"
                             >
-                                <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" /></svg>
+                                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                                    <path
+                                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                        fill="#4285F4"/>
+                                    <path
+                                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                        fill="#34A853"/>
+                                    <path
+                                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                                        fill="#FBBC05"/>
+                                    <path
+                                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                                        fill="#EA4335"/>
+                                </svg>
                                 Sign in with Google
-                            </button>
-                            <button
-                                onClick={() => handleLogin('anon')}
-                                className="w-full bg-zinc-800 text-zinc-300 font-bold py-3 px-4 rounded-xl hover:bg-zinc-700 transition-colors"
-                            >
-                                Continue as Guest
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                            <form onSubmit={(e: FormEvent<HTMLFormElement>) => { e.preventDefault(); enterApp((e.currentTarget.elements.namedItem('gymId') as HTMLInputElement).value.toUpperCase()); }} className="space-y-2">
-                                <input
-                                    name="gymId"
-                                    defaultValue={myGymId}
-                                    placeholder="ENTER GYM ID"
-                                    className="w-full bg-zinc-900 border border-zinc-800 text-center text-white text-lg rounded-xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase tracking-widest placeholder-zinc-700"
-                                    autoComplete="off"
+                            </button>                            
+                            <div className="relative py-2">
+                                <div className="absolute inset-0 flex items-center"><span
+                                    className="w-full border-t border-zinc-800"></span></div>
+                                <div className="relative flex justify-center text-xs uppercase"><span
+                                    className="bg-zinc-950 px-2 text-zinc-500">or</span></div>
+                            </div>
+
+                            <form onSubmit={handleEmailAuth} className="space-y-3">
+                                <Input 
+                                    type="email" 
+                                    placeholder="Email address" 
+                                    value={email} 
+                                    onChange={(e) => setEmail(e.target.value)} 
+                                    required 
                                 />
-                                <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl uppercase tracking-wider shadow-lg shadow-emerald-900/20">
-                                    Enter Gym
+                                <Input 
+                                    type="password" 
+                                    placeholder="Password" 
+                                    value={password} 
+                                    onChange={(e) => setPassword(e.target.value)} 
+                                    required 
+                                />
+                                {authError && <p className="text-red-500 text-xs text-center">{authError}</p>}
+                                <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl transition-colors">
+                                    {authMode === 'signin' ? 'Sign In' : 'Create Account'}
                                 </button>
                             </form>
 
+                            <p className="text-xs text-zinc-500">
+                                {authMode === 'signin' ? "Don't have an account?" : "Already have an account?"}
+                                <button 
+                                    onClick={() => { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); setAuthError(null); }}
+                                    className="font-bold text-emerald-500 hover:text-emerald-400 ml-1"
+                                >
+                                    {authMode === 'signin' ? 'Sign Up' : 'Sign In'}
+                                </button>
+                            </p>
+
+                        </div>
+                    ) : (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                            <Select
+                                label="Select a Gym"
+                                options={[{label: 'Select a gym...', value: ''}, ...gyms.map(gym => ({label: gym.name, value: gym.id}))]}
+                                value={selectedGymId}
+                                onChange={(e) => setSelectedGymId(e.target.value)}
+                            />
+                            <button
+                                onClick={() => enterApp(selectedGymId)}
+                                disabled={!selectedGymId}
+                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:bg-zinc-700 disabled:text-zinc-400 disabled:cursor-not-allowed"
+                            >
+                                <ChevronRight size={18}/>
+                                Enter Gym
+                            </button>
+                            
                             <div className="relative py-2">
-                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-zinc-800"></span></div>
-                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-zinc-950 px-2 text-zinc-500">or</span></div>
+                                <div className="absolute inset-0 flex items-center"><span
+                                    className="w-full border-t border-zinc-800"></span></div>
+                                <div className="relative flex justify-center text-xs uppercase"><span
+                                    className="bg-zinc-950 px-2 text-zinc-500">or</span></div>
                             </div>
 
                             <button
-                                onClick={() => enterApp('')}
-                                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-600 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all"
+                                onClick={() => setIsCreateGymModalOpen(true)}
+                                className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all"
                             >
-                                <Globe size={18} />
-                                Browse Global Leaderboard
+                                <Plus size={18}/>
+                                Create a New Gym
                             </button>
 
-                            <button onClick={() => { signOut(auth); setViewState('landing'); }} className="text-zinc-600 text-xs hover:text-zinc-400 py-2">
+                            <button onClick={() => {
+                                signOut(auth);
+                                setViewState('landing');
+                            }} className="text-zinc-600 text-xs hover:text-zinc-400 py-2">
                                 Sign Out
                             </button>
                         </div>
                     )}
                 </div>
+
+                <Modal
+                    isOpen={isCreateGymModalOpen}
+                    onClose={() => setIsCreateGymModalOpen(false)}
+                    title="Create a New Gym"
+                >
+                    <form onSubmit={handleCreateGym}>
+                        <Input
+                            label="Gym Name"
+                            placeholder="e.g. CrossFit Central"
+                            value={newGymName}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setNewGymName(e.target.value)}
+                            autoFocus
+                        />
+                        <button
+                            type="submit"
+                            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors uppercase tracking-wide"
+                        >
+                            Create Gym
+                        </button>
+                    </form>
+                </Modal>
             </div>
         );
     }
 
-    // APP DASHBOARD
     return (
         <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-emerald-500/30">
 
-            {/* Navbar */}
             <nav className="sticky top-0 z-30 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800">
                 <div className="max-w-6xl mx-auto px-4 py-3">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                             <div className="bg-zinc-900 p-2 rounded-lg border border-zinc-800">
-                                {filterGym ? <MapPin className="w-5 h-5 text-emerald-500" /> : <Globe className="w-5 h-5 text-blue-500" />}
+                                {filterGym ? <MapPin className="w-5 h-5 text-emerald-500"/> :
+                                    <Globe className="w-5 h-5 text-blue-500"/>}
                             </div>
                             <div className="flex flex-col">
-                <span className="text-sm font-black uppercase tracking-tighter text-white leading-none">
-                  {filterGym || 'Global Arena'}
-                </span>
+                                <span className="text-sm font-black uppercase tracking-tighter text-white leading-none">
+                                  {gyms.find(g => g.id === filterGym)?.name || 'Global Arena'}
+                                </span>
                                 <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">
-                  {filterGym ? 'Private Leaderboard' : 'All Gyms'}
-                </span>
+                                  {filterGym ? 'Leaderboard' : 'All Gyms'}
+                                </span>
                             </div>
                         </div>
-                        <button
-                            onClick={() => setViewState('landing')}
-                            className="p-2 text-zinc-500 hover:text-white transition-colors bg-zinc-900/50 rounded-lg hover:bg-zinc-800"
-                        >
-                            <LogOut size={18} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {userAthlete && (
+                                <button
+                                    onClick={() => openScoreModal(userAthlete)}
+                                    className="p-2 px-3 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors"
+                                >
+                                    <Plus size={14}/> Log Score
+                                </button>
+                            )}
+                            <button onClick={() => signOut(auth)}
+                                    className="p-2 text-zinc-500 hover:text-red-500 transition-colors bg-zinc-900/50 rounded-lg hover:bg-zinc-800"
+                                    title="Sign Out">
+                                <LogOut size={14}/>
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Filter Bar */}
                     <div className="flex flex-wrap gap-2 items-center">
                         <div className="relative flex-1 min-w-[140px]">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500"/>
                             <input
                                 type="text"
-                                placeholder="Filter by Gym ID..."
-                                value={filterGym}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setFilterGym(e.target.value.toUpperCase())}
-                                className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500 transition-colors uppercase"
+                                placeholder="Search Athletes..."
+                                value={searchTerm}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                                className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500 transition-colors"
                             />
-                            {filterGym && (
+                            {searchTerm && (
                                 <button
-                                    onClick={() => setFilterGym('')}
+                                    onClick={() => setSearchTerm('')}
                                     className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
                                 >
-                                    <X size={12} />
+                                    <X size={12}/>
                                 </button>
                             )}
                         </div>
 
+                        <select
+                            className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-emerald-500"
+                            value={filterGym}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                                const gymId = e.target.value;
+                                if (gymId) {
+                                    // Redirect to the specific gym's URL
+                                    window.location.href = `/?gymId=${gymId}`;
+                                } else {
+                                    // Redirect to the global view
+                                    window.location.href = '/';
+                                }
+                            }}
+                        >
+                            <option value="">All Gyms</option>
+                            {gyms.map(gym => (
+                                <option key={gym.id} value={gym.id}>{gym.name}</option>
+                            ))}
+                        </select>
                         <select
                             className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-emerald-500"
                             value={filterDivision}
@@ -585,23 +547,24 @@ export default function App() {
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="max-w-6xl mx-auto px-4 flex overflow-x-auto no-scrollbar gap-6 border-b border-zinc-800/50 pt-2">
+                <div
+                    className="max-w-6xl mx-auto px-4 flex overflow-x-auto no-scrollbar gap-6 border-b border-zinc-800/50 pt-2">
                     {[
-                        { id: 'leaderboard', label: 'Overall' },
-                        { id: 'w1', label: '25.1' },
-                        { id: 'w2', label: '25.2' },
-                        { id: 'w3', label: '25.3' },
+                        {id: 'leaderboard', label: 'Overall'},
+                        {id: 'w1', label: '25.1'},
+                        {id: 'w2', label: '25.2'},
+                        {id: 'w3', label: '25.3'},
+                        ...(isAdmin ? [{id: 'admin', label: 'Admin'}] : []),
                     ].map(tab => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id as ActiveTab)}
+                            onClick={() => tab.action ? tab.action() : setActiveTab(tab.id as ActiveTab)}
                             className={`
-                py-3 text-sm font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors
-                ${activeTab === tab.id
+                                py-3 text-sm font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors
+                                ${activeTab === tab.id
                                 ? 'border-emerald-500 text-white'
                                 : 'border-transparent text-zinc-500 hover:text-zinc-300'}
-              `}
+                              `}
                         >
                             {tab.label}
                         </button>
@@ -609,30 +572,59 @@ export default function App() {
                 </div>
             </nav>
 
-            {/* Main Content */}
             <main className="max-w-6xl mx-auto px-4 py-6 pb-24">
 
                 <div className="flex justify-between items-end mb-4">
                     <p className="text-xs text-zinc-500 font-medium uppercase tracking-wide">
                         Showing {rankedAthletes.length} Athletes
-                        {filterGym ? ` in ${filterGym}` : ' Globally'}
+                        {filterGym ? ` in ${gyms.find(g => g.id === filterGym)?.name}` : ' Globally'}
                     </p>
-                    <button
-                        onClick={() => setIsAddModalOpen(true)}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors shadow-lg shadow-emerald-900/20"
-                    >
-                        <Plus size={14} />
-                        Add Athlete
-                    </button>
+
                 </div>
 
-                {loadingData ? (
+                {loading ? (
                     <div className="flex justify-center py-20">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
                     </div>
+                ) : activeTab === 'admin' ? (
+                    <div>
+                        <h2 className="text-lg font-bold text-white mb-3">Pending Verifications</h2>
+                        {pendingVerifications.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {pendingVerifications.map(({ athlete, workout, score, workoutLabel }, index) => (
+                                    <div key={`${athlete.id}-${workout}-${index}`}
+                                         className="group bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-3 transition-all flex flex-col justify-between">
+                                        <div>
+                                            <div onClick={() => openScoreModal(athlete as AthleteWithRank)} className="cursor-pointer">
+                                                <h3 className="font-bold text-white truncate leading-tight">{athlete.name}</h3>
+                                                <p className="text-xs text-zinc-400">{workoutLabel} Score: <span className="font-bold text-emerald-400">{score}</span></p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-3">
+                                            <button onClick={() => handleVerifyScore(athlete.id, workout)}
+                                                    className="flex-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-colors">
+                                                <ShieldCheck size={14}/> Verify
+                                            </button>
+                                            <button onClick={() => openScoreModal(athlete as AthleteWithRank)}
+                                                    className="flex-none text-xs bg-zinc-700 hover:bg-zinc-600 text-zinc-300 font-bold p-1.5 rounded-md transition-colors" title="Edit Score">
+                                                <ChevronRight size={14}/>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-10 bg-zinc-900/30 rounded-2xl border border-zinc-800 border-dashed">
+                                <ShieldCheck className="w-10 h-10 text-zinc-700 mx-auto mb-3"/>
+                                <h3 className="text-md font-bold text-white">All Scores Verified</h3>
+                                <p className="text-zinc-500 text-sm mt-1">Nothing to see here!</p>
+                            </div>
+                        )}
+                    </div>
                 ) : rankedAthletes.length === 0 ? (
-                    <div className="text-center py-20 bg-zinc-900/30 rounded-2xl border border-zinc-800 border-dashed">
-                        <Filter className="w-12 h-12 text-zinc-700 mx-auto mb-4" />
+                    <div
+                        className="text-center py-20 bg-zinc-900/30 rounded-2xl border border-zinc-800 border-dashed">
+                        <Filter className="w-12 h-12 text-zinc-700 mx-auto mb-4"/>
                         <h3 className="text-lg font-bold text-white">No Athletes Match Filters</h3>
                         <p className="text-zinc-500 text-sm mt-1">Try adjusting your search or filters.</p>
                     </div>
@@ -641,37 +633,43 @@ export default function App() {
                         {rankedAthletes.map((athlete, index) => (
                             <div
                                 key={athlete.id}
-                                onClick={() => openScoreModal(athlete)}
-                                className="group bg-zinc-900/40 hover:bg-zinc-900 border border-zinc-800/60 hover:border-emerald-500/30 rounded-xl p-4 transition-all cursor-pointer relative overflow-hidden"
+                                onClick={() => (isAdmin || athlete.createdBy === user?.uid) && openScoreModal(athlete)}
+                                className={`group bg-zinc-900/40 ${(isAdmin || athlete.createdBy === user?.uid) ? 'hover:bg-zinc-900 cursor-pointer' : ''} border border-zinc-800/60 hover:border-emerald-500/30 rounded-xl p-4 transition-all relative overflow-hidden`}
                             >
-                                <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/0 group-hover:bg-emerald-500 transition-colors" />
+                                <div
+                                    className="absolute top-0 left-0 w-1 h-full bg-emerald-500/0 group-hover:bg-emerald-500 transition-colors"/>
 
                                 <div className="flex items-center gap-4">
                                     <div className="flex flex-col items-center justify-center w-10 sm:w-12 shrink-0">
-                    <span className="text-2xl font-black text-zinc-500 group-hover:text-emerald-500 italic transition-colors">
-                      #{index + 1}
-                    </span>
+                                        <span
+                                            className="text-2xl font-black text-zinc-500 group-hover:text-emerald-500 italic transition-colors">
+                                          #{index + 1}
+                                        </span>
                                     </div>
 
                                     <div className="flex-1 min-w-0">
                                         <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                                             <h3 className="text-lg font-bold text-white truncate leading-tight">{athlete.name}</h3>
                                             <div className="flex gap-2 items-center flex-wrap">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-400 bg-zinc-800 uppercase font-bold">
-                          {athlete.division}
-                        </span>
-                                                <span className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-400 bg-zinc-800 uppercase font-bold">
-                          {athlete.gender}
-                        </span>
+                                                <span
+                                                    className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-400 bg-zinc-800 uppercase font-bold">
+                                                  {athlete.division}
+                                                </span>
+                                                <span
+                                                    className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-400 bg-zinc-800 uppercase font-bold">
+                                                  {athlete.gender}
+                                                </span>
                                                 {athlete.age && (
-                                                    <span className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-400 bg-zinc-800 uppercase font-bold">
-                            Age {athlete.age}
-                          </span>
+                                                    <span
+                                                        className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-400 bg-zinc-800 uppercase font-bold">
+                                                        Age {athlete.age}
+                                                      </span>
                                                 )}
                                                 {!filterGym && (
-                                                    <span className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-800 text-emerald-500/70 bg-zinc-900/50 uppercase font-bold">
-                            {athlete.gymId}
-                          </span>
+                                                    <span
+                                                        className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-800 text-emerald-500/70 bg-zinc-900/50 uppercase font-bold">
+                                                        {athlete.gymId}
+                                                      </span>
                                                 )}
                                             </div>
                                         </div>
@@ -679,42 +677,53 @@ export default function App() {
                                         {activeTab === 'leaderboard' ? (
                                             <div className="flex gap-4 mt-3 overflow-x-auto no-scrollbar text-xs">
                                                 <div className="flex flex-col">
-                                                    <span className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider">Points</span>
-                                                    <span className="font-bold text-white text-sm">{athlete.totalPoints}</span>
+                                                    <span
+                                                        className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider">Points</span>
+                                                    <span
+                                                        className="font-bold text-white text-sm">{athlete.totalPoints}</span>
                                                 </div>
-                                                <div className="w-px bg-zinc-800" />
+                                                <div className="w-px bg-zinc-800"/>
                                                 <div className="flex flex-col">
-                                                    <span className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider">25.1</span>
-                                                    <span className={`${!athlete.w1 ? 'text-zinc-700' : 'text-emerald-400 font-medium'}`}>
-                            {athlete.w1 ? `${athlete.w1} (${athlete.w1_rank})` : '--'}
-                          </span>
+                                                    <span
+                                                        className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider">26.1</span>
+                                                    <span
+                                                        className={`${!athlete.w1 ? 'text-zinc-700' : 'text-emerald-400 font-medium'}`}>
+                                                        {athlete.w1 ? `${athlete.w1} (${athlete.w1_rank})` : '--'}
+                                                        {athlete.w1_verified && <ShieldCheck size={12} className="inline-block ml-1 text-blue-500"/>}
+                                                      </span>
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider">25.2</span>
-                                                    <span className={`${!athlete.w2 ? 'text-zinc-700' : 'text-emerald-400 font-medium'}`}>
-                            {athlete.w2 ? `${athlete.w2} (${athlete.w2_rank})` : '--'}
-                          </span>
+                                                    <span
+                                                        className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider">26.2</span>
+                                                    <span
+                                                        className={`${!athlete.w2 ? 'text-zinc-700' : 'text-emerald-400 font-medium'}`}>
+                                                        {athlete.w2 ? `${athlete.w2} (${athlete.w2_rank})` : '--'}
+                                                        {athlete.w2_verified && <ShieldCheck size={12} className="inline-block ml-1 text-blue-500"/>}
+                                                      </span>
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider">25.3</span>
-                                                    <span className={`${!athlete.w3 ? 'text-zinc-700' : 'text-emerald-400 font-medium'}`}>
-                            {athlete.w3 ? `${athlete.w3} (${athlete.w3_rank})` : '--'}
-                          </span>
+                                                    <span
+                                                        className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider">26.3</span>
+                                                    <span
+                                                        className={`${!athlete.w3 ? 'text-zinc-700' : 'text-emerald-400 font-medium'}`}>
+                                                        {athlete.w3 ? `${athlete.w3} (${athlete.w3_rank})` : '--'}
+                                                        {athlete.w3_verified && <ShieldCheck size={12} className="inline-block ml-1 text-blue-500"/>}
+                                                      </span>
                                                 </div>
                                             </div>
                                         ) : (
                                             <div className="mt-2 flex items-baseline gap-3">
-                        <span className="text-2xl font-black text-emerald-400">
-                           {athlete[activeTab as keyof Athlete] || '--'}
-                        </span>
+                                                <span className="text-2xl font-black text-emerald-400">
+                                                   {athlete[activeTab as keyof Athlete] || '--'}
+                                                </span>
                                                 <span className="text-xs text-zinc-500 font-medium uppercase">
-                          {athlete[activeTab as keyof Athlete] ? `Reps (Rank ${athlete[`${activeTab}_rank` as keyof AthleteWithRank]})` : 'No Score Logged'}
-                        </span>
+                                                  {athlete[activeTab as keyof Athlete] ? `Reps (Rank ${athlete[`${activeTab}_rank` as keyof AthleteWithRank]})` : 'No Score Logged'}
+                                                </span>
                                             </div>
                                         )}
                                     </div>
 
-                                    <ChevronRight className="text-zinc-700 group-hover:text-emerald-500 transition-colors" />
+                                    {(isAdmin || athlete.createdBy === user?.uid) && <ChevronRight className="text-zinc-700 group-hover:text-emerald-500 transition-colors"/>}
                                 </div>
                             </div>
                         ))}
@@ -722,39 +731,59 @@ export default function App() {
                 )}
             </main>
 
-            {/* Add Athlete Modal */}
             <Modal
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                title="Register Athlete"
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+                title="Create Your Profile"
             >
                 <form onSubmit={handleAddAthlete}>
                     <Input
                         label="Full Name"
                         placeholder="e.g. Jane Doe"
                         value={newAthlete.name}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => setNewAthlete({...newAthlete, name: e.target.value})}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setNewAthlete({
+                            ...newAthlete,
+                            name: e.target.value
+                        })}
                         autoFocus
+                    />
+                    <Select
+                        label="Select Your Gym"
+                        options={[
+                            {label: 'Choose a gym...', value: ''},
+                            ...gyms.map(gym => ({label: gym.name, value: gym.id}))
+                        ]}
+                        value={newAthlete.gymId}
+                        onChange={(e: ChangeEvent<HTMLSelectElement>) => setNewAthlete({
+                            ...newAthlete,
+                            gymId: e.target.value
+                        })}
                     />
                     <div className="grid grid-cols-2 gap-4">
                         <Select
                             label="Division"
                             options={[
-                                { label: 'Rx', value: 'Rx' },
-                                { label: 'Scaled', value: 'Scaled' },
-                                { label: 'Foundations', value: 'Foundations' }
+                                {label: 'Rx', value: 'Rx'},
+                                {label: 'Scaled', value: 'Scaled'},
+                                {label: 'Foundations', value: 'Foundations'}
                             ]}
                             value={newAthlete.division}
-                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setNewAthlete({...newAthlete, division: e.target.value as 'Rx' | 'Scaled' | 'Foundations'})}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setNewAthlete({
+                                ...newAthlete,
+                                division: e.target.value as 'Rx' | 'Scaled' | 'Foundations'
+                            })}
                         />
                         <Select
                             label="Gender"
                             options={[
-                                { label: 'Male', value: 'M' },
-                                { label: 'Female', value: 'F' },
+                                {label: 'Male', value: 'M'},
+                                {label: 'Female', value: 'F'},
                             ]}
                             value={newAthlete.gender}
-                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setNewAthlete({...newAthlete, gender: e.target.value as 'M' | 'F'})}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setNewAthlete({
+                                ...newAthlete,
+                                gender: e.target.value as 'M' | 'F'
+                            })}
                         />
                     </div>
                     <Input
@@ -762,21 +791,89 @@ export default function App() {
                         type="number"
                         placeholder="e.g. 28"
                         value={newAthlete.age}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => setNewAthlete({...newAthlete, age: e.target.value})}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setNewAthlete({
+                            ...newAthlete,
+                            age: e.target.value
+                        })}
                     />
                     <button
                         type="submit"
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors uppercase tracking-wide"
+                        disabled={!newAthlete.gymId || !newAthlete.name}
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors uppercase tracking-wide disabled:bg-zinc-700 disabled:cursor-not-allowed"
                     >
-                        Add to Roster
-                    </button>
-                    <p className="text-[10px] text-zinc-500 text-center mt-3">
-                        Adding to gym: <span className="text-white font-bold">{myGymId || filterGym || 'Not Set (prompt)'}</span>
-                    </p>
+                        Create Profile
+                    </button>                    
                 </form>
             </Modal>
 
-            {/* Log Score Modal */}
+            {isAdmin && (
+                <Modal
+                    isOpen={isAddModalOpen}
+                    onClose={() => setIsAddModalOpen(false)}
+                    title="Register Athlete"
+                >
+                    <form onSubmit={handleAddAthlete}>
+                        <Input
+                            label="Full Name"
+                            placeholder="e.g. Jane Doe"
+                            value={newAthlete.name}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setNewAthlete({
+                                ...newAthlete,
+                                name: e.target.value
+                            })}
+                            autoFocus
+                        />
+                        <div className="grid grid-cols-2 gap-4">
+                            <Select
+                                label="Division"
+                                options={[
+                                    {label: 'Rx', value: 'Rx'},
+                                    {label: 'Scaled', value: 'Scaled'},
+                                    {label: 'Foundations', value: 'Foundations'}
+                                ]}
+                                value={newAthlete.division}
+                                onChange={(e: ChangeEvent<HTMLSelectElement>) => setNewAthlete({
+                                    ...newAthlete,
+                                    division: e.target.value as 'Rx' | 'Scaled' | 'Foundations'
+                                })}
+                            />
+                            <Select
+                                label="Gender"
+                                options={[
+                                    {label: 'Male', value: 'M'},
+                                    {label: 'Female', value: 'F'},
+                                ]}
+                                value={newAthlete.gender}
+                                onChange={(e: ChangeEvent<HTMLSelectElement>) => setNewAthlete({
+                                    ...newAthlete,
+                                    gender: e.target.value as 'M' | 'F'
+                                })}
+                            />
+                        </div>
+                        <Input
+                            label="Age"
+                            type="number"
+                            placeholder="e.g. 28"
+                            value={newAthlete.age}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setNewAthlete({
+                                ...newAthlete,
+                                age: e.target.value
+                            })}
+                        />
+                        <button
+                            type="submit"
+                            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors uppercase tracking-wide"
+                        >
+                            Add to Roster
+                        </button>
+                        <p className="text-[10px] text-zinc-500 text-center mt-3">
+                            Adding to gym: <span
+                            className="text-white font-bold">{gyms.find(g => g.id === myGymId)?.name}</span>
+                        </p>
+                    </form>
+                </Modal>
+            )}
+
             {editingAthlete && (
                 <Modal
                     isOpen={isScoreModalOpen}
@@ -786,63 +883,136 @@ export default function App() {
                     <form onSubmit={handleUpdateScore}>
                         <div className="grid grid-cols-1 gap-3 mb-6">
                             <div className="p-3 bg-zinc-950/50 rounded-lg border border-zinc-800">
-                                <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide mb-2">25.1 Score</h4>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">25.1
+                                        Score</h4>
+                                    {isAdmin && (
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="w1_verified"
+                                                   checked={scoreForm.w1_verified}
+                                                   onChange={(e) => setScoreForm({
+                                                       ...scoreForm,
+                                                       w1_verified: e.target.checked
+                                                   })}
+                                                   className="h-4 w-4 text-emerald-600 bg-zinc-800 border-zinc-700 rounded focus:ring-emerald-500"/>
+                                            <label htmlFor="w1_verified"
+                                                   className="ml-2 text-xs text-zinc-400">Verified</label>
+                                        </div>
+                                    )}
+                                </div>
                                 <input
                                     type="number" step="any" placeholder="0"
                                     className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none"
                                     value={scoreForm.w1}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({...scoreForm, w1: e.target.value})}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
+                                        ...scoreForm,
+                                        w1: e.target.value
+                                    })}
                                 />
                             </div>
                             <div className="p-3 bg-zinc-950/50 rounded-lg border border-zinc-800">
-                                <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide mb-2">25.2 Score</h4>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">25.2
+                                        Score</h4>
+                                    {isAdmin && (
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="w2_verified"
+                                                   checked={scoreForm.w2_verified}
+                                                   onChange={(e) => setScoreForm({
+                                                       ...scoreForm,
+                                                       w2_verified: e.target.checked
+                                                   })}
+                                                   className="h-4 w-4 text-emerald-600 bg-zinc-800 border-zinc-700 rounded focus:ring-emerald-500"/>
+                                            <label htmlFor="w2_verified"
+                                                   className="ml-2 text-xs text-zinc-400">Verified</label>
+                                        </div>
+                                    )}
+                                </div>
                                 <input
                                     type="number" step="any" placeholder="0"
                                     className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none"
                                     value={scoreForm.w2}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({...scoreForm, w2: e.target.value})}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
+                                        ...scoreForm,
+                                        w2: e.target.value
+                                    })}
                                 />
                             </div>
                             <div className="p-3 bg-zinc-950/50 rounded-lg border border-zinc-800">
-                                <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide mb-2">25.3 Score</h4>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">25.3
+                                        Score</h4>
+                                    {isAdmin && (
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="w3_verified"
+                                                   checked={scoreForm.w3_verified}
+                                                   onChange={(e) => setScoreForm({
+                                                       ...scoreForm,
+                                                       w3_verified: e.target.checked
+                                                   })}
+                                                   className="h-4 w-4 text-emerald-600 bg-zinc-800 border-zinc-700 rounded focus:ring-emerald-500"/>
+                                            <label htmlFor="w3_verified"
+                                                   className="ml-2 text-xs text-zinc-400">Verified</label>
+                                        </div>
+                                    )}
+                                </div>
                                 <input
                                     type="number" step="any" placeholder="0"
                                     className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none"
                                     value={scoreForm.w3}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({...scoreForm, w3: e.target.value})}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
+                                        ...scoreForm,
+                                        w3: e.target.value
+                                    })}
                                 />
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2">
-                            <Select
-                                label="Div"
-                                options={[ { label: 'Rx', value: 'Rx' }, { label: 'Sc', value: 'Scaled' }, { label: 'Found', value: 'Foundations' } ]}
-                                value={scoreForm.division}
-                                onChange={(e: ChangeEvent<HTMLSelectElement>) => setScoreForm({...scoreForm, division: e.target.value as 'Rx' | 'Scaled' | 'Foundations'})}
-                            />
-                            <Select
-                                label="Sex"
-                                options={[ { label: 'M', value: 'M' }, { label: 'F', value: 'F' } ]}
-                                value={scoreForm.gender}
-                                onChange={(e: ChangeEvent<HTMLSelectElement>) => setScoreForm({...scoreForm, gender: e.target.value as 'M' | 'F'})}
-                            />
-                            <Input
-                                label="Age"
-                                type="number"
-                                value={scoreForm.age}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({...scoreForm, age: e.target.value})}
-                            />
-                        </div>
+                        {isAdmin && (
+                            <div className="grid grid-cols-3 gap-2">
+                                <Select
+                                    label="Div"
+                                    options={[{label: 'Rx', value: 'Rx'}, {label: 'Sc', value: 'Scaled'}, {
+                                        label: 'Found',
+                                        value: 'Foundations'
+                                    }]}
+                                    value={scoreForm.division}
+                                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setScoreForm({
+                                        ...scoreForm,
+                                        division: e.target.value as 'Rx' | 'Scaled' | 'Foundations'
+                                    })}
+                                />
+                                <Select
+                                    label="Sex"
+                                    options={[{label: 'M', value: 'M'}, {label: 'F', value: 'F'}]}
+                                    value={scoreForm.gender}
+                                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setScoreForm({
+                                        ...scoreForm,
+                                        gender: e.target.value as 'M' | 'F'
+                                    })}
+                                />
+                                <Input
+                                    label="Age"
+                                    type="number"
+                                    value={scoreForm.age}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
+                                        ...scoreForm,
+                                        age: e.target.value
+                                    })}
+                                />
+                            </div>
+                        )}
 
                         <div className="flex gap-3 mt-6">
-                            <button
-                                type="button"
-                                onClick={() => handleDeleteAthlete(editingAthlete.id)}
-                                className="flex-none bg-red-900/20 hover:bg-red-900/40 text-red-500 p-3 rounded-lg transition-colors border border-red-900/30"
-                            >
-                                <Trash2 size={20} />
-                            </button>
+                            {isAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleDeleteAthlete(editingAthlete.id)}
+                                    className="flex-none bg-red-900/20 hover:bg-red-900/40 text-red-500 p-3 rounded-lg transition-colors border border-red-900/30"
+                                >
+                                    <Trash2 size={20}/>
+                                </button>
+                            )}
                             <button
                                 type="submit"
                                 className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg transition-colors uppercase tracking-wide"
