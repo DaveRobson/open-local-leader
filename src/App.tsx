@@ -18,17 +18,23 @@ import {
     type DivisionFilter,
     type GenderFilter,
     type NewAthleteForm,
-    type ScoreForm, 
+    type ScoreForm,
     type ViewState,
+    type WorkoutId,
 } from './types';
 import {AGE_GROUPS} from './constants/ageGroups';
 import Modal from './components/Modal';
 import Input from './components/Input';
 import Select from './components/Select';
+import TimeInput from './components/TimeInput';
+import SuperAdminPanel from './components/SuperAdminPanel';
 import {useAuth} from './hooks/useAuth';
 import {calculateRankings} from './utils/ranking';
 import {useUserProfile} from "./hooks/useUserProfile.ts";
 import {useApp} from "./hooks/useApp.ts";
+import {useWorkoutConfig} from "./hooks/useWorkoutConfig.ts";
+import {useSuperAdmin} from "./hooks/useSuperAdmin.ts";
+import {formatSecondsToTime} from "./utils/timeFormat.ts";
 
 export default function App() {
     const {user, authLoading} = useAuth();
@@ -37,6 +43,8 @@ export default function App() {
     const [filterGym, setFilterGym] = useState<string>('');
     const {athletes, isAdmin, gyms, loading} = useApp(viewState, filterGym, myGymId);
     const {profileExists, loadingProfile, userProfile} = useUserProfile(user);
+    const {workoutConfigs, loading: workoutConfigLoading, updateAllWorkoutConfigs} = useWorkoutConfig();
+    const {isSuperAdmin} = useSuperAdmin(user);
 
     const [filterGender, setFilterGender] = useState<GenderFilter>('all');
     const [filterAgeGroup, setFilterAgeGroup] = useState<AgeGroupFilter>('all');
@@ -112,26 +120,46 @@ export default function App() {
     }, [user, profileExists, loadingProfile, viewState]);
 
     const rankedAthletes = useMemo(() => {
-        return calculateRankings(athletes, searchTerm, filterDivision, filterGender, filterAgeGroup);
-    }, [athletes, searchTerm, filterDivision, filterGender, filterAgeGroup]);
+        return calculateRankings(athletes, searchTerm, filterDivision, filterGender, filterAgeGroup, workoutConfigs);
+    }, [athletes, searchTerm, filterDivision, filterGender, filterAgeGroup, workoutConfigs]);
 
     const displayedAthletes = useMemo(() => {
-        if (activeTab === 'leaderboard' || activeTab === 'admin') {
+        if (activeTab === 'leaderboard' || activeTab === 'admin' || activeTab === 'superAdmin') {
             return rankedAthletes;
         }
 
-        // For workout-specific tabs, re-sort the list based on that workout's score
+        // For workout-specific tabs, re-sort the list based on that workout's score and type
+        const workoutKey = activeTab as WorkoutId;
+        const config = workoutConfigs[workoutKey];
+
         return [...rankedAthletes].sort((a, b) => {
-            const workoutKey = activeTab as 'w1' | 'w2' | 'w3';
             const scoreA = a[workoutKey] || 0;
             const scoreB = b[workoutKey] || 0;
 
             // Athletes with no score go to the bottom
             if (scoreA === 0 && scoreB > 0) return 1;
             if (scoreB === 0 && scoreA > 0) return -1;
-            return scoreB - scoreA; // Higher score is better
+            if (scoreA === 0 && scoreB === 0) return 0;
+
+            // Sort based on score type
+            if (config?.scoreType === 'time') {
+                return scoreA - scoreB; // Lower time is better
+            } else if (config?.scoreType === 'time_cap_reps') {
+                const cappedKey = `${workoutKey}_capped` as keyof Athlete;
+                const aCapped = a[cappedKey] as boolean | undefined;
+                const bCapped = b[cappedKey] as boolean | undefined;
+                const aFinished = !aCapped;
+                const bFinished = !bCapped;
+
+                if (aFinished && !bFinished) return -1;
+                if (!aFinished && bFinished) return 1;
+                if (aFinished && bFinished) return scoreA - scoreB; // Lower time
+                return scoreB - scoreA; // Higher reps for capped
+            }
+
+            return scoreB - scoreA; // Higher score is better (reps, weight)
         });
-    }, [rankedAthletes, activeTab]);
+    }, [rankedAthletes, activeTab, workoutConfigs]);
 
     const userAthlete = useMemo(() => {
         return rankedAthletes.find(a => a.createdBy === user?.uid);
@@ -279,6 +307,12 @@ export default function App() {
                 w1_verified: scoreForm.w1_verified,
                 w2_verified: scoreForm.w2_verified,
                 w3_verified: scoreForm.w3_verified,
+                w1_capped: scoreForm.w1_capped || false,
+                w2_capped: scoreForm.w2_capped || false,
+                w3_capped: scoreForm.w3_capped || false,
+                w1_tiebreaker: scoreForm.w1_tiebreaker ? parseFloat(String(scoreForm.w1_tiebreaker)) : 0,
+                w2_tiebreaker: scoreForm.w2_tiebreaker ? parseFloat(String(scoreForm.w2_tiebreaker)) : 0,
+                w3_tiebreaker: scoreForm.w3_tiebreaker ? parseFloat(String(scoreForm.w3_tiebreaker)) : 0,
                 division: scoreForm.division,
                 gender: scoreForm.gender,
                 age: parseInt(String(scoreForm.age), 10),
@@ -319,6 +353,12 @@ export default function App() {
             w1_verified: athlete.w1_verified || false,
             w2_verified: athlete.w2_verified || false,
             w3_verified: athlete.w3_verified || false,
+            w1_capped: athlete.w1_capped || false,
+            w2_capped: athlete.w2_capped || false,
+            w3_capped: athlete.w3_capped || false,
+            w1_tiebreaker: athlete.w1_tiebreaker || '',
+            w2_tiebreaker: athlete.w2_tiebreaker || '',
+            w3_tiebreaker: athlete.w3_tiebreaker || '',
             division: athlete.division,
             gender: athlete.gender || 'M',
             age: athlete.age || '',
@@ -326,9 +366,37 @@ export default function App() {
         setIsScoreModalOpen(true);
     };
 
+    // Helper to format score display based on workout type
+    const formatScoreDisplay = (athlete: AthleteWithRank, workoutKey: WorkoutId): string => {
+        const score = athlete[workoutKey];
+        if (!score) return '--';
+
+        const config = workoutConfigs[workoutKey];
+        const cappedKey = `${workoutKey}_capped` as keyof Athlete;
+        const tiebreakerKey = `${workoutKey}_tiebreaker` as keyof Athlete;
+        const capped = athlete[cappedKey] as boolean | undefined;
+        const tiebreaker = athlete[tiebreakerKey] as number | undefined;
+
+        if (config.scoreType === 'time') {
+            return formatSecondsToTime(score);
+        } else if (config.scoreType === 'time_cap_reps') {
+            if (capped) {
+                return `CAP+${score}`;
+            }
+            return formatSecondsToTime(score);
+        } else {
+            // reps or weight
+            let display = String(score);
+            if (tiebreaker && config.hasTiebreaker) {
+                display += ` (TB: ${formatSecondsToTime(tiebreaker)})`;
+            }
+            return display;
+        }
+    };
 
 
-    if (authLoading || loading || loadingProfile) {
+
+    if (authLoading || loading || loadingProfile || workoutConfigLoading) {
         return (
             <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
@@ -580,10 +648,11 @@ export default function App() {
                     className="max-w-6xl mx-auto px-4 flex overflow-x-auto no-scrollbar gap-6 border-b border-zinc-800/50 pt-2">
                     {[
                         {id: 'leaderboard', label: 'Overall'},
-                        {id: 'w1', label: '26.1'},
-                        {id: 'w2', label: '26.2'},
-                        {id: 'w3', label: '26.3'},
+                        {id: 'w1', label: workoutConfigs.w1.name},
+                        {id: 'w2', label: workoutConfigs.w2.name},
+                        {id: 'w3', label: workoutConfigs.w3.name},
                         ...(isAdmin ? [{id: 'admin', label: 'Admin'}] : []),
+                        ...(isSuperAdmin ? [{id: 'superAdmin', label: 'Super Admin'}] : []),
                     ].map(tab => (
                         <button
                             key={tab.id}
@@ -591,7 +660,7 @@ export default function App() {
                             className={`
                                 py-3 text-sm font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors
                                 ${activeTab === tab.id
-                                ? 'border-emerald-500 text-white'
+                                ? (tab.id === 'superAdmin' ? 'border-purple-500 text-white' : 'border-emerald-500 text-white')
                                 : 'border-transparent text-zinc-500 hover:text-zinc-300'}
                               `}
                         >
@@ -650,6 +719,13 @@ export default function App() {
                             </div>
                         )}
                     </div>
+                ) : activeTab === 'superAdmin' ? (
+                    <SuperAdminPanel
+                        workoutConfigs={workoutConfigs}
+                        onSaveWorkoutConfig={updateAllWorkoutConfigs}
+                        gyms={gyms}
+                        athletes={athletes}
+                    />
                 ) : rankedAthletes.length === 0 ? (
                     <div
                         className="text-center py-20 bg-zinc-900/30 rounded-2xl border border-zinc-800 border-dashed">
@@ -712,38 +788,22 @@ export default function App() {
                                                         className="font-bold text-white text-sm">{athlete.totalPoints}</span>
                                                 </div>
                                                 <div className="w-px bg-zinc-800"/>
-                                                <div className="flex flex-col">
-                                                    <span
-                                                        className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider">26.1</span>
-                                                    <span
-                                                        className={`${!athlete.w1 ? 'text-zinc-700' : 'text-emerald-400 font-medium'}`}>
-                                                        {athlete.w1 ? `${athlete.w1} (${athlete.w1_rank})` : '--'}
-                                                        {athlete.w1_verified && <ShieldCheck size={12} className="inline-block ml-1 text-blue-500"/>}
-                                                      </span>
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span
-                                                        className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider">26.2</span>
-                                                    <span
-                                                        className={`${!athlete.w2 ? 'text-zinc-700' : 'text-emerald-400 font-medium'}`}>
-                                                        {athlete.w2 ? `${athlete.w2} (${athlete.w2_rank})` : '--'}
-                                                        {athlete.w2_verified && <ShieldCheck size={12} className="inline-block ml-1 text-blue-500"/>}
-                                                      </span>
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span
-                                                        className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider">26.3</span>
-                                                    <span
-                                                        className={`${!athlete.w3 ? 'text-zinc-700' : 'text-emerald-400 font-medium'}`}>
-                                                        {athlete.w3 ? `${athlete.w3} (${athlete.w3_rank})` : '--'}
-                                                        {athlete.w3_verified && <ShieldCheck size={12} className="inline-block ml-1 text-blue-500"/>}
-                                                      </span>
-                                                </div>
+                                                {(['w1', 'w2', 'w3'] as const).map(wKey => (
+                                                    <div key={wKey} className="flex flex-col">
+                                                        <span className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider">
+                                                            {workoutConfigs[wKey].name}
+                                                        </span>
+                                                        <span className={`${!athlete[wKey] ? 'text-zinc-700' : 'text-emerald-400 font-medium'}`}>
+                                                            {athlete[wKey] ? `${formatScoreDisplay(athlete, wKey)} (${athlete[`${wKey}_rank` as keyof AthleteWithRank]})` : '--'}
+                                                            {athlete[`${wKey}_verified` as keyof Athlete] && <ShieldCheck size={12} className="inline-block ml-1 text-blue-500"/>}
+                                                        </span>
+                                                    </div>
+                                                ))}
                                             </div>
                                         ) : (
                                             <div className="mt-2 flex items-baseline gap-3">
                                                 <span className="text-2xl font-black text-emerald-400">
-                                                   {athlete[activeTab as keyof Athlete] || '--'}
+                                                   {formatScoreDisplay(athlete, activeTab as WorkoutId)}
                                                 </span>
                                                 <span className="text-xs text-zinc-500 font-medium uppercase">
                                                   {athlete[activeTab as keyof Athlete] ? `Score (${athlete[`${activeTab}_rank` as keyof AthleteWithRank]} Points)` : 'No Score Logged'}
@@ -903,90 +963,117 @@ export default function App() {
                 >
                     <form onSubmit={handleUpdateScore}>
                         <div className="grid grid-cols-1 gap-3 mb-6">
-                            <div className="p-3 bg-zinc-950/50 rounded-lg border border-zinc-800">
-                                <div className="flex items-center justify-between mb-2">
-                                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">26.1
-                                        Score</h4>
-                                    {isAdmin && (
-                                        <div className="flex items-center">
-                                            <input type="checkbox" id="w1_verified"
-                                                   checked={scoreForm.w1_verified}
-                                                   onChange={(e) => setScoreForm({
-                                                       ...scoreForm,
-                                                       w1_verified: e.target.checked
-                                                   })}
-                                                   className="h-4 w-4 text-emerald-600 bg-zinc-800 border-zinc-700 rounded focus:ring-emerald-500"/>
-                                            <label htmlFor="w1_verified"
-                                                   className="ml-2 text-xs text-zinc-400">Verified</label>
+                            {(['w1', 'w2', 'w3'] as const).map(workoutKey => {
+                                const config = workoutConfigs[workoutKey];
+                                const scoreValue = scoreForm[workoutKey];
+                                const verifiedKey = `${workoutKey}_verified` as const;
+                                const cappedKey = `${workoutKey}_capped` as keyof ScoreForm;
+                                const tiebreakerKey = `${workoutKey}_tiebreaker` as keyof ScoreForm;
+
+                                return (
+                                    <div key={workoutKey} className="p-3 bg-zinc-950/50 rounded-lg border border-zinc-800">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">
+                                                {config.name} Score
+                                                <span className="text-zinc-500 font-normal ml-1">
+                                                    ({config.scoreType === 'time' ? 'Time' :
+                                                      config.scoreType === 'time_cap_reps' ? 'Time/Reps' :
+                                                      config.unit || 'reps'})
+                                                </span>
+                                            </h4>
+                                            {isAdmin && (
+                                                <div className="flex items-center">
+                                                    <input type="checkbox" id={verifiedKey}
+                                                           checked={scoreForm[verifiedKey]}
+                                                           onChange={(e) => setScoreForm({
+                                                               ...scoreForm,
+                                                               [verifiedKey]: e.target.checked
+                                                           })}
+                                                           className="h-4 w-4 text-emerald-600 bg-zinc-800 border-zinc-700 rounded focus:ring-emerald-500"/>
+                                                    <label htmlFor={verifiedKey}
+                                                           className="ml-2 text-xs text-zinc-400">Verified</label>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                                <input
-                                    type="number" step="any" placeholder="0"
-                                    className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none"
-                                    value={scoreForm.w1}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
-                                        ...scoreForm,
-                                        w1: e.target.value
-                                    })}
-                                />
-                            </div>
-                            <div className="p-3 bg-zinc-950/50 rounded-lg border border-zinc-800">
-                                <div className="flex items-center justify-between mb-2">
-                                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">26.2
-                                        Score</h4>
-                                    {isAdmin && (
-                                        <div className="flex items-center">
-                                            <input type="checkbox" id="w2_verified"
-                                                   checked={scoreForm.w2_verified}
-                                                   onChange={(e) => setScoreForm({
-                                                       ...scoreForm,
-                                                       w2_verified: e.target.checked
-                                                   })}
-                                                   className="h-4 w-4 text-emerald-600 bg-zinc-800 border-zinc-700 rounded focus:ring-emerald-500"/>
-                                            <label htmlFor="w2_verified"
-                                                   className="ml-2 text-xs text-zinc-400">Verified</label>
-                                        </div>
-                                    )}
-                                </div>
-                                <input
-                                    type="number" step="any" placeholder="0"
-                                    className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none"
-                                    value={scoreForm.w2}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
-                                        ...scoreForm,
-                                        w2: e.target.value
-                                    })}
-                                />
-                            </div>
-                            <div className="p-3 bg-zinc-950/50 rounded-lg border border-zinc-800">
-                                <div className="flex items-center justify-between mb-2">
-                                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">26.3
-                                        Score</h4>
-                                    {isAdmin && (
-                                        <div className="flex items-center">
-                                            <input type="checkbox" id="w3_verified"
-                                                   checked={scoreForm.w3_verified}
-                                                   onChange={(e) => setScoreForm({
-                                                       ...scoreForm,
-                                                       w3_verified: e.target.checked
-                                                   })}
-                                                   className="h-4 w-4 text-emerald-600 bg-zinc-800 border-zinc-700 rounded focus:ring-emerald-500"/>
-                                            <label htmlFor="w3_verified"
-                                                   className="ml-2 text-xs text-zinc-400">Verified</label>
-                                        </div>
-                                    )}
-                                </div>
-                                <input
-                                    type="number" step="any" placeholder="0"
-                                    className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none"
-                                    value={scoreForm.w3}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
-                                        ...scoreForm,
-                                        w3: e.target.value
-                                    })}
-                                />
-                            </div>
+
+                                        {config.scoreType === 'time' && (
+                                            <TimeInput
+                                                value={scoreValue as number}
+                                                onChange={(seconds) => setScoreForm({...scoreForm, [workoutKey]: seconds})}
+                                                placeholder="MM:SS"
+                                            />
+                                        )}
+
+                                        {config.scoreType === 'time_cap_reps' && (
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`${workoutKey}_capped_check`}
+                                                        checked={scoreForm[cappedKey] as boolean || false}
+                                                        onChange={(e) => setScoreForm({
+                                                            ...scoreForm,
+                                                            [cappedKey]: e.target.checked,
+                                                            [workoutKey]: '' // Clear score when toggling
+                                                        })}
+                                                        className="h-4 w-4 text-amber-600 bg-zinc-800 border-zinc-700 rounded focus:ring-amber-500"
+                                                    />
+                                                    <label htmlFor={`${workoutKey}_capped_check`} className="text-xs text-zinc-400">
+                                                        Did not finish (time capped)
+                                                    </label>
+                                                </div>
+                                                {scoreForm[cappedKey] ? (
+                                                    <input
+                                                        type="number"
+                                                        step="1"
+                                                        placeholder={`Reps completed (cap: ${config.timeCap ? Math.floor(config.timeCap / 60) : '?'} min)`}
+                                                        className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                                                        value={scoreValue as string}
+                                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
+                                                            ...scoreForm,
+                                                            [workoutKey]: e.target.value
+                                                        })}
+                                                    />
+                                                ) : (
+                                                    <TimeInput
+                                                        value={scoreValue as number}
+                                                        onChange={(seconds) => setScoreForm({...scoreForm, [workoutKey]: seconds})}
+                                                        placeholder="Finish time (MM:SS)"
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {(config.scoreType === 'reps' || config.scoreType === 'weight') && (
+                                            <div className="space-y-2">
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    placeholder={config.unit || '0'}
+                                                    className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                                                    value={scoreValue as string}
+                                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
+                                                        ...scoreForm,
+                                                        [workoutKey]: e.target.value
+                                                    })}
+                                                />
+                                                {config.hasTiebreaker && (
+                                                    <div className="pt-2 border-t border-zinc-800">
+                                                        <label className="text-xs text-zinc-500 block mb-1">
+                                                            {config.tiebreakerLabel || 'Tiebreaker time'}
+                                                        </label>
+                                                        <TimeInput
+                                                            value={scoreForm[tiebreakerKey] as number}
+                                                            onChange={(seconds) => setScoreForm({...scoreForm, [tiebreakerKey]: seconds})}
+                                                            placeholder="MM:SS"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         {isAdmin && (
