@@ -6,7 +6,7 @@ import {useGyms} from "./useGyms.ts";
 export function useApp(viewState: ViewState, filterGym: string, myGymId: string) {
     const {athletes, loadingData, admins} = useAthletes(viewState, filterGym);
 
-    const isAdmin = useAdmin(myGymId);
+    const {isAdmin, isSuperAdmin} = useAdmin(myGymId);
     const {gyms, loading: gymsLoading} = useGyms();
 
     return {
@@ -14,6 +14,7 @@ export function useApp(viewState: ViewState, filterGym: string, myGymId: string)
         athletes,
         gyms,
         isAdmin,
+        isSuperAdmin,
         admins
     }
 }

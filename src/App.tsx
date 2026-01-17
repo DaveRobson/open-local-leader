@@ -33,7 +33,6 @@ import {calculateRankings} from './utils/ranking';
 import {useUserProfile} from "./hooks/useUserProfile.ts";
 import {useApp} from "./hooks/useApp.ts";
 import {useWorkoutConfig} from "./hooks/useWorkoutConfig.ts";
-import {useSuperAdmin} from "./hooks/useSuperAdmin.ts";
 import {formatSecondsToTime} from "./utils/timeFormat.ts";
 
 export default function App() {
@@ -41,10 +40,9 @@ export default function App() {
     const [viewState, setViewState] = useState<ViewState>('landing');
     const [myGymId, setMyGymId] = useState<string>('');
     const [filterGym, setFilterGym] = useState<string>('');
-    const {athletes, isAdmin, gyms, loading} = useApp(viewState, filterGym, myGymId);
+    const {athletes, isAdmin, isSuperAdmin, gyms, loading} = useApp(viewState, filterGym, myGymId);
     const {profileExists, loadingProfile, userProfile} = useUserProfile(user);
     const {workoutConfigs, loading: workoutConfigLoading, updateAllWorkoutConfigs} = useWorkoutConfig();
-    const {isSuperAdmin} = useSuperAdmin(user);
 
     const [filterGender, setFilterGender] = useState<GenderFilter>('all');
     const [filterAgeGroup, setFilterAgeGroup] = useState<AgeGroupFilter>('all');
@@ -1023,17 +1021,29 @@ export default function App() {
                                                     </label>
                                                 </div>
                                                 {scoreForm[cappedKey] ? (
-                                                    <input
-                                                        type="number"
-                                                        step="1"
-                                                        placeholder={`Reps completed (cap: ${config.timeCap ? Math.floor(config.timeCap / 60) : '?'} min)`}
-                                                        className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none"
-                                                        value={scoreValue as string}
-                                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
-                                                            ...scoreForm,
-                                                            [workoutKey]: e.target.value
-                                                        })}
-                                                    />
+                                                    <>
+                                                        <input
+                                                            type="number"
+                                                            step="1"
+                                                            placeholder={`Reps completed (cap: ${config.timeCap ? Math.floor(config.timeCap / 60) : '?'} min)`}
+                                                            className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                                                            value={scoreValue as string}
+                                                            onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
+                                                                ...scoreForm,
+                                                                [workoutKey]: e.target.value
+                                                            })}
+                                                        />
+                                                        <div className="pt-2 border-t border-zinc-800">
+                                                            <label className="text-xs text-zinc-500 block mb-1">
+                                                                {config.tiebreakerLabel || 'Tiebreaker time (for same reps)'}
+                                                            </label>
+                                                            <TimeInput
+                                                                value={scoreForm[tiebreakerKey] as number}
+                                                                onChange={(seconds) => setScoreForm({...scoreForm, [tiebreakerKey]: seconds})}
+                                                                placeholder="MM:SS"
+                                                            />
+                                                        </div>
+                                                    </>
                                                 ) : (
                                                     <TimeInput
                                                         value={scoreValue as number}

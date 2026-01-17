@@ -27,34 +27,52 @@ A CrossFit Open-style leaderboard application for gyms to track athlete scores, 
 
 ### Setup
 
-1. Clone the repository
+1.  Clone the repository
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
 
-3. Create `.env.local` with your Firebase config:
-   ```
-   VITE_API_KEY=your_api_key
-   VITE_AUTH_DOMAIN=your_project.firebaseapp.com
-   VITE_PROJECT_ID=your_project_id
-   VITE_STORAGE_BUCKET=your_project.appspot.com
-   VITE_MESSAGING_SENDER_ID=your_sender_id
-   VITE_APP_ID=your_app_id
-   VITE_MEASUREMENT_ID=your_measurement_id
-   ```
+3.  Create `.env.local` with your Firebase config:
+    ```
+    VITE_API_KEY=your_api_key
+    VITE_AUTH_DOMAIN=your_project.firebaseapp.com
+    VITE_PROJECT_ID=your_project_id
+    VITE_STORAGE_BUCKET=your_project.appspot.com
+    VITE_MESSAGING_SENDER_ID=your_sender_id
+    VITE_APP_ID=your_app_id
+    VITE_MEASUREMENT_ID=your_measurement_id
+    ```
 
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
+4.  Start the development server:
+    ```bash
+    npm run dev
+    ```
+
+### Development with Firebase Emulator
+
+To run the app with the Firebase emulator for local development:
+
+```bash
+npm run dev:emulator
+```
+
+This will start the Vite dev server and the Firebase emulators for Auth and Firestore.
+
+To seed the emulator with test data (a super admin, a gym, a gym admin, and two athletes):
+
+```bash
+npm run seed
+```
 
 ## Scripts
 
 | Command | Description |
-|---------|-------------|
+|---|---|
 | `npm run dev` | Start development server |
+| `npm run dev:emulator` | Start development server with Firebase emulators |
+| `npm run seed` | Seed the Firebase emulator with test data |
 | `npm run build` | Build for production |
 | `npm run preview` | Preview production build |
 | `npm run lint` | Run ESLint |
