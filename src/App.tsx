@@ -53,7 +53,7 @@ export default function App() {
     const [editingAthlete, setEditingAthlete] = useState<AthleteWithRank | null>(null);
 
     const [newAthlete, setNewAthlete] = useState<NewAthleteForm>({
-        name: '', division: 'Rx', gender: 'M', age: ''
+        name: '', division: 'Rx', gender: 'M', age: '', gymId: ''
     });
     const [newGymName, setNewGymName] = useState<string>('');
     const [scoreForm, setScoreForm] = useState<ScoreForm>({
