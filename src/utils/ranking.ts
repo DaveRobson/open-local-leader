@@ -17,9 +17,9 @@ const isInAgeGroup = (age: number | string, group: string): boolean => {
 
 // Default workout configs (higher score = better) for backward compatibility
 const defaultWorkoutConfigs: WorkoutConfigs = {
-    w1: { id: 'w1', name: '26.1', scoreType: 'reps', unit: 'reps' },
-    w2: { id: 'w2', name: '26.2', scoreType: 'reps', unit: 'reps' },
-    w3: { id: 'w3', name: '26.3', scoreType: 'reps', unit: 'reps' },
+    w1: { id: 'w1', name: '26.1', scoreType: 'reps', unit: 'reps', published: false },
+    w2: { id: 'w2', name: '26.2', scoreType: 'reps', unit: 'reps', published: false },
+    w3: { id: 'w3', name: '26.3', scoreType: 'reps', unit: 'reps', published: false },
 };
 
 // Helper to safely parse scores
@@ -137,6 +137,12 @@ export const calculateRankings = (
     // Per SCORING.md: Scaled ranks start after ALL Rx, Foundations after ALL Scaled
     (['w1', 'w2', 'w3'] as const).forEach(w => {
         const config = workoutConfigs[w];
+
+        // Don't rank workouts that are not published
+        if (!config.published) {
+            return;
+        }
+
         const genders: ('M' | 'F')[] = ['M', 'F'];
 
         genders.forEach(gender => {
@@ -199,18 +205,24 @@ export const calculateRankings = (
 
     // 3. Calculate total points with missing score penalty
     // Per SCORING.md: Missing score = Total_Participants + 1
+
+    // Determine if each workout is "live" (published and has scores)
+    const w1IsLive = !!workoutConfigs.w1.published && processed.some(a => getScore(a.w1) > 0);
+    const w2IsLive = !!workoutConfigs.w2.published && processed.some(a => getScore(a.w2) > 0);
+    const w3IsLive = !!workoutConfigs.w3.published && processed.some(a => getScore(a.w3) > 0);
+
     processed.forEach(a => {
         // Count total participants in same gender for penalty calculation
         const sameGenderCount = processed.filter(p => p.gender === a.gender).length;
         const missedPenalty = sameGenderCount + 1;
 
-        // If athlete has a score, use their rank; otherwise apply penalty
-        const w1Points = a.w1 ? (a.w1_rank || missedPenalty) : missedPenalty;
-        const w2Points = a.w2 ? (a.w2_rank || missedPenalty) : missedPenalty;
-        const w3Points = a.w3 ? (a.w3_rank || missedPenalty) : missedPenalty;
+        // If athlete has a score, use their rank; otherwise apply penalty. Only for live workouts.
+        const w1Points = w1IsLive ? (getScore(a.w1) > 0 ? (a.w1_rank || missedPenalty) : missedPenalty) : 0;
+        const w2Points = w2IsLive ? (getScore(a.w2) > 0 ? (a.w2_rank || missedPenalty) : missedPenalty) : 0;
+        const w3Points = w3IsLive ? (getScore(a.w3) > 0 ? (a.w3_rank || missedPenalty) : missedPenalty) : 0;
 
         a.totalPoints = w1Points + w2Points + w3Points;
-        a.participation = (a.w1 ? 1 : 0) + (a.w2 ? 1 : 0) + (a.w3 ? 1 : 0);
+        a.participation = (getScore(a.w1) > 0 ? 1 : 0) + (getScore(a.w2) > 0 ? 1 : 0) + (getScore(a.w3) > 0 ? 1 : 0);
     });
 
     // 4. Apply user's filters to the fully processed list

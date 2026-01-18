@@ -24,30 +24,49 @@ const createAthlete = (overrides: Partial<Athlete> = {}): Athlete => ({
 
 // Default workout configs for testing
 const repsConfig: WorkoutConfigs = {
-    w1: { id: 'w1', name: '26.1', scoreType: 'reps', unit: 'reps' },
-    w2: { id: 'w2', name: '26.2', scoreType: 'reps', unit: 'reps' },
-    w3: { id: 'w3', name: '26.3', scoreType: 'reps', unit: 'reps' },
+    w1: { id: 'w1', name: '26.1', scoreType: 'reps', unit: 'reps', published: true },
+    w2: { id: 'w2', name: '26.2', scoreType: 'reps', unit: 'reps', published: true },
+    w3: { id: 'w3', name: '26.3', scoreType: 'reps', unit: 'reps', published: true },
 };
 
 const timeConfig: WorkoutConfigs = {
-    w1: { id: 'w1', name: '26.1', scoreType: 'time', unit: 'time' },
-    w2: { id: 'w2', name: '26.2', scoreType: 'time', unit: 'time' },
-    w3: { id: 'w3', name: '26.3', scoreType: 'time', unit: 'time' },
+    w1: { id: 'w1', name: '26.1', scoreType: 'time', unit: 'time', published: true },
+    w2: { id: 'w2', name: '26.2', scoreType: 'time', unit: 'time', published: true },
+    w3: { id: 'w3', name: '26.3', scoreType: 'time', unit: 'time', published: true },
 };
 
 const timeCapRepsConfig: WorkoutConfigs = {
-    w1: { id: 'w1', name: '26.1', scoreType: 'time_cap_reps', timeCap: 900, unit: 'reps' },
-    w2: { id: 'w2', name: '26.2', scoreType: 'time_cap_reps', timeCap: 900, unit: 'reps' },
-    w3: { id: 'w3', name: '26.3', scoreType: 'time_cap_reps', timeCap: 900, unit: 'reps' },
+    w1: { id: 'w1', name: '26.1', scoreType: 'time_cap_reps', timeCap: 900, unit: 'reps', published: true },
+    w2: { id: 'w2', name: '26.2', scoreType: 'time_cap_reps', timeCap: 900, unit: 'reps', published: true },
+    w3: { id: 'w3', name: '26.3', scoreType: 'time_cap_reps', timeCap: 900, unit: 'reps', published: true },
 };
 
 const repsWithTiebreakerConfig: WorkoutConfigs = {
-    w1: { id: 'w1', name: '26.1', scoreType: 'reps', unit: 'reps', hasTiebreaker: true },
-    w2: { id: 'w2', name: '26.2', scoreType: 'reps', unit: 'reps', hasTiebreaker: true },
-    w3: { id: 'w3', name: '26.3', scoreType: 'reps', unit: 'reps', hasTiebreaker: true },
+    w1: { id: 'w1', name: '26.1', scoreType: 'reps', unit: 'reps', hasTiebreaker: true, published: true },
+    w2: { id: 'w2', name: '26.2', scoreType: 'reps', unit: 'reps', hasTiebreaker: true, published: true },
+    w3: { id: 'w3', name: '26.3', scoreType: 'reps', unit: 'reps', hasTiebreaker: true, published: true },
 };
 
 describe('calculateRankings', () => {
+    describe('Unpublished workouts', () => {
+        it('should not award any points if workouts are not published', () => {
+            const athletes: Athlete[] = [
+                createAthlete({ name: 'Athlete A', w1: 100 }),
+                createAthlete({ name: 'Athlete B', w1: 200 }),
+            ];
+
+            const unpublishedConfig: WorkoutConfigs = {
+                w1: { id: 'w1', name: '26.1', scoreType: 'reps', unit: 'reps', published: false },
+                w2: { id: 'w2', name: '26.2', scoreType: 'reps', unit: 'reps', published: false },
+                w3: { id: 'w3', name: '26.3', scoreType: 'reps', unit: 'reps', published: false },
+            };
+
+            const result = calculateRankings(athletes, '', 'all', 'all', 'all', unpublishedConfig);
+
+            expect(result[0].totalPoints).toBe(0);
+            expect(result[1].totalPoints).toBe(0);
+        });
+    });
     describe('AMRAP (reps) scoring - higher is better', () => {
         it('should rank athletes with higher reps first', () => {
             const athletes: Athlete[] = [
@@ -455,9 +474,9 @@ describe('calculateRankings', () => {
         it('should correctly rank a realistic CrossFit Open scenario', () => {
             // Scenario: 3 workouts with different scoring types
             const mixedConfig: WorkoutConfigs = {
-                w1: { id: 'w1', name: '26.1', scoreType: 'time_cap_reps', timeCap: 900 },
-                w2: { id: 'w2', name: '26.2', scoreType: 'reps', hasTiebreaker: true },
-                w3: { id: 'w3', name: '26.3', scoreType: 'time' },
+                w1: { id: 'w1', name: '26.1', scoreType: 'time_cap_reps', timeCap: 900, published: true },
+                w2: { id: 'w2', name: '26.2', scoreType: 'reps', hasTiebreaker: true, published: true },
+                w3: { id: 'w3', name: '26.3', scoreType: 'time', published: true },
             };
 
             const athletes: Athlete[] = [

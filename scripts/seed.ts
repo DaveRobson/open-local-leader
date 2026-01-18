@@ -85,8 +85,8 @@ const seed = async () => {
     gender: 'M',
     age: 30,
     gymId,
-    w1: 120,
-    w2: 225,
+    w1: 0,
+    w2: 0,
     w3: 0,
     w1_verified: true,
     w2_verified: false,
@@ -108,8 +108,8 @@ const seed = async () => {
     gender: 'F',
     age: 28,
     gymId,
-    w1: 100,
-    w2: 155,
+    w1: 0,
+    w2: 0,
     w3: 0,
     w1_verified: true,
     w2_verified: true,
@@ -119,6 +119,14 @@ const seed = async () => {
     createdBy: athlete2Uid,
   });
   console.log('Athletes created');
+
+  // Create workout configurations
+  await db.collection('workouts').doc('current').set({
+    w1: { id: 'w1', name: '26.1', scoreType: 'reps', unit: 'reps', published: false },
+    w2: { id: 'w2', name: '26.2', scoreType: 'reps', unit: 'reps', published: false },
+    w3: { id: 'w3', name: '26.3', scoreType: 'reps', unit: 'reps', published: false },
+  });
+  console.log('Workout configurations created');
 
   console.log('Seed complete!');
   process.exit(0);

@@ -5,9 +5,9 @@ import { type WorkoutConfigs, type WorkoutConfig, type WorkoutId } from '../type
 
 // Default workout configs (higher score = better) for backward compatibility
 const defaultWorkoutConfigs: WorkoutConfigs = {
-    w1: { id: 'w1', name: '26.1', scoreType: 'reps', unit: 'reps' },
-    w2: { id: 'w2', name: '26.2', scoreType: 'reps', unit: 'reps' },
-    w3: { id: 'w3', name: '26.3', scoreType: 'reps', unit: 'reps' },
+    w1: { id: 'w1', name: '26.1', scoreType: 'reps', unit: 'reps', published: false },
+    w2: { id: 'w2', name: '26.2', scoreType: 'reps', unit: 'reps', published: false },
+    w3: { id: 'w3', name: '26.3', scoreType: 'reps', unit: 'reps', published: false },
 };
 
 export function useWorkoutConfig() {
