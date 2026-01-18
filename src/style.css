@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+@theme {
+  /* Custom gold colors to match Newbury CrossFit branding */
+  /* Base: HSL(46, 37.82%, 53.33%) */
+  --color-gold-400: hsl(46, 37.82%, 63%);
+  --color-gold-500: hsl(46, 37.82%, 53.33%);
+  --color-gold-600: hsl(46, 37.82%, 43%);
+}
