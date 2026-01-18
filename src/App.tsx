@@ -397,7 +397,7 @@ export default function App() {
     if (authLoading || loading || loadingProfile || workoutConfigLoading) {
         return (
             <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold-500"></div>
             </div>
         );
     }
@@ -407,17 +407,17 @@ export default function App() {
             <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-4">
                 <div className="w-full max-w-md space-y-8 text-center">
                     <div className="flex justify-center mb-6">
-                        <div className="bg-emerald-500/10 p-4 rounded-full ring-1 ring-emerald-500/20">
-                            <Trophy className="w-16 h-16 text-emerald-500"/>
+                        <div className="bg-gold-500/10 p-4 rounded-full ring-1 ring-gold-500/20">
+                            <Trophy className="w-16 h-16 text-gold-500"/>
                         </div>
                     </div>
 
                     <div>
-                        <h1 className="text-4xl font-black tracking-tighter uppercase italic text-white mb-2">
-                            Open Leaderboard
+                        <h1 className="text-3xl font-black tracking-tighter uppercase italic text-white mb-2">
+                            Open Leaderboard: Berkshire Boxes
                         </h1>
                         <p className="text-zinc-400">
-                            Track scores, filter by age/gender, and compete globally or locally.
+                            Join our local leaderboard to track your Open performances alongside gym friends across Berkshire!
                         </p>
                     </div>
 
@@ -466,7 +466,7 @@ export default function App() {
                                     required 
                                 />
                                 {authError && <p className="text-red-500 text-xs text-center">{authError}</p>}
-                                <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl transition-colors">
+                                <button type="submit" className="w-full bg-gold-600 hover:bg-gold-500 text-white font-bold py-3 px-4 rounded-xl transition-colors">
                                     {authMode === 'signin' ? 'Sign In' : 'Create Account'}
                                 </button>
                             </form>
@@ -475,7 +475,7 @@ export default function App() {
                                 {authMode === 'signin' ? "Don't have an account?" : "Already have an account?"}
                                 <button 
                                     onClick={() => { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); setAuthError(null); }}
-                                    className="font-bold text-emerald-500 hover:text-emerald-400 ml-1"
+                                    className="font-bold text-gold-500 hover:text-gold-400 ml-1"
                                 >
                                     {authMode === 'signin' ? 'Sign Up' : 'Sign In'}
                                 </button>
@@ -493,7 +493,7 @@ export default function App() {
                             <button
                                 onClick={() => enterApp(selectedGymId)}
                                 disabled={!selectedGymId}
-                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:bg-zinc-700 disabled:text-zinc-400 disabled:cursor-not-allowed"
+                                className="w-full bg-gold-600 hover:bg-gold-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:bg-zinc-700 disabled:text-zinc-400 disabled:cursor-not-allowed"
                             >
                                 <ChevronRight size={18}/>
                                 Enter Gym
@@ -515,7 +515,7 @@ export default function App() {
                             </button>
 
                             <button onClick={() => enterApp('')}
-                                    className="text-zinc-500 text-xs hover:text-emerald-400 py-2 transition-colors"
+                                    className="text-zinc-500 text-xs hover:text-gold-400 py-2 transition-colors"
                             >
                                 or view the Global Leaderboard
                             </button>
@@ -536,14 +536,14 @@ export default function App() {
     }
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-emerald-500/30">
+        <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-gold-500/30">
 
             <nav className="sticky top-0 z-30 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800">
                 <div className="max-w-6xl mx-auto px-4 py-3">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                             <div className="bg-zinc-900 p-2 rounded-lg border border-zinc-800">
-                                {filterGym ? <MapPin className="w-5 h-5 text-emerald-500"/> :
+                                {filterGym ? <MapPin className="w-5 h-5 text-gold-500"/> :
                                     <Globe className="w-5 h-5 text-blue-500"/>}
                             </div>
                             <div className="flex flex-col">
@@ -559,7 +559,7 @@ export default function App() {
                             {userAthlete && (
                                 <button
                                     onClick={() => openScoreModal(userAthlete)}
-                                    className="p-2 px-3 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors"
+                                    className="p-2 px-3 text-xs bg-gold-600 hover:bg-gold-500 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors"
                                 >
                                     <Plus size={14}/> Log Score
                                 </button>
@@ -580,7 +580,7 @@ export default function App() {
                                 placeholder="Search Athletes..."
                                 value={searchTerm}
                                 onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                                className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-emerald-500 transition-colors"
+                                className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-gold-500 transition-colors"
                             />
                             {searchTerm && (
                                 <button
@@ -593,7 +593,7 @@ export default function App() {
                         </div>
 
                         <select
-                            className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-emerald-500"
+                            className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-gold-500"
                             value={filterGym}
                             onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                                 const gymId = e.target.value;
@@ -612,7 +612,7 @@ export default function App() {
                             ))}
                         </select>
                         <select
-                            className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-emerald-500"
+                            className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-gold-500"
                             value={filterDivision}
                             onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterDivision(e.target.value as DivisionFilter)}
                         >
@@ -623,7 +623,7 @@ export default function App() {
                         </select>
 
                         <select
-                            className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-emerald-500"
+                            className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-gold-500"
                             value={filterGender}
                             onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterGender(e.target.value as GenderFilter)}
                         >
@@ -633,7 +633,7 @@ export default function App() {
                         </select>
 
                         <select
-                            className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-emerald-500"
+                            className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-gold-500"
                             value={filterAgeGroup}
                             onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterAgeGroup(e.target.value as AgeGroupFilter)}
                         >
@@ -645,12 +645,13 @@ export default function App() {
                 <div
                     className="max-w-6xl mx-auto px-4 flex overflow-x-auto no-scrollbar gap-6 border-b border-zinc-800/50 pt-2">
                     {[
-                        {id: 'leaderboard', label: 'Overall'},
-                        {id: 'w1', label: workoutConfigs.w1.name},
-                        {id: 'w2', label: workoutConfigs.w2.name},
-                        {id: 'w3', label: workoutConfigs.w3.name},
-                        ...(isAdmin ? [{id: 'admin', label: 'Admin'}] : []),
-                        ...(isSuperAdmin ? [{id: 'superAdmin', label: 'Super Admin'}] : []),
+                        {id: 'leaderboard', label: 'Overall', published: true},
+                        // Only show workout tabs if published (or if super admin)
+                        ...(workoutConfigs.w1.published || isSuperAdmin ? [{id: 'w1', label: workoutConfigs.w1.name, published: workoutConfigs.w1.published}] : []),
+                        ...(workoutConfigs.w2.published || isSuperAdmin ? [{id: 'w2', label: workoutConfigs.w2.name, published: workoutConfigs.w2.published}] : []),
+                        ...(workoutConfigs.w3.published || isSuperAdmin ? [{id: 'w3', label: workoutConfigs.w3.name, published: workoutConfigs.w3.published}] : []),
+                        ...(isAdmin ? [{id: 'admin', label: 'Admin', published: true}] : []),
+                        ...(isSuperAdmin ? [{id: 'superAdmin', label: 'Super Admin', published: true}] : []),
                     ].map(tab => (
                         <button
                             key={tab.id}
@@ -658,9 +659,11 @@ export default function App() {
                             className={`
                                 py-3 text-sm font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors
                                 ${activeTab === tab.id
-                                ? (tab.id === 'superAdmin' ? 'border-purple-500 text-white' : 'border-emerald-500 text-white')
+                                ? (tab.id === 'superAdmin' ? 'border-purple-500 text-white' : 'border-gold-500 text-white')
                                 : 'border-transparent text-zinc-500 hover:text-zinc-300'}
+                                ${!tab.published && isSuperAdmin ? 'opacity-50' : ''}
                               `}
+                            title={!tab.published ? 'Not published yet' : ''}
                         >
                             {tab.label}
                         </button>
@@ -680,7 +683,7 @@ export default function App() {
 
                 {loading ? (
                     <div className="flex justify-center py-20">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold-500"></div>
                     </div>
                 ) : activeTab === 'admin' ? (
                     <div>
@@ -693,12 +696,12 @@ export default function App() {
                                         <div>
                                             <div onClick={() => openScoreModal(athlete as AthleteWithRank)} className="cursor-pointer">
                                                 <h3 className="font-bold text-white truncate leading-tight">{athlete.name}</h3>
-                                                <p className="text-xs text-zinc-400">{workoutLabel} Score: <span className="font-bold text-emerald-400">{score}</span></p>
+                                                <p className="text-xs text-zinc-400">{workoutLabel} Score: <span className="font-bold text-gold-400">{score}</span></p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 mt-3">
                                             <button onClick={() => handleVerifyScore(athlete.id, workout)}
-                                                    className="flex-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-colors">
+                                                    className="flex-1 text-xs bg-gold-600 hover:bg-gold-500 text-white font-bold py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-colors">
                                                 <ShieldCheck size={14}/> Verify
                                             </button>
                                             <button onClick={() => openScoreModal(athlete as AthleteWithRank)}
@@ -737,15 +740,15 @@ export default function App() {
                             <div
                                 key={athlete.id}
                                 onClick={() => (isAdmin || athlete.createdBy === user?.uid) && openScoreModal(athlete)}
-                                className={`group bg-zinc-900/40 ${(isAdmin || athlete.createdBy === user?.uid) ? 'hover:bg-zinc-900 cursor-pointer' : ''} border border-zinc-800/60 hover:border-emerald-500/30 rounded-xl p-4 transition-all relative overflow-hidden animate-in fade-in`}
+                                className={`group bg-zinc-900/40 ${(isAdmin || athlete.createdBy === user?.uid) ? 'hover:bg-zinc-900 cursor-pointer' : ''} border border-zinc-800/60 hover:border-gold-500/30 rounded-xl p-4 transition-all relative overflow-hidden animate-in fade-in`}
                             >
                                 <div
-                                    className="absolute top-0 left-0 w-1 h-full bg-emerald-500/0 group-hover:bg-emerald-500 transition-colors"/>
+                                    className="absolute top-0 left-0 w-1 h-full bg-gold-500/0 group-hover:bg-gold-500 transition-colors"/>
 
                                 <div className="flex items-center gap-4">
                                     <div className="flex flex-col items-center justify-center w-10 sm:w-12 shrink-0">
                                         <span
-                                            className={`text-2xl font-black ${activeTab === 'leaderboard' ? 'text-zinc-500 group-hover:text-emerald-500' : 'text-emerald-500'} italic transition-colors`}>
+                                            className={`text-2xl font-black ${activeTab === 'leaderboard' ? 'text-zinc-500 group-hover:text-gold-500' : 'text-gold-500'} italic transition-colors`}>
                                           #{index + 1}
                                         </span>
                                     </div>
@@ -770,7 +773,7 @@ export default function App() {
                                                 )}
                                                 {!filterGym && (
                                                     <span
-                                                        className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-800 text-emerald-500/70 bg-zinc-900/50 uppercase font-bold">
+                                                        className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-800 text-gold-500/70 bg-zinc-900/50 uppercase font-bold">
                                                         {athlete.gymId}
                                                       </span>
                                                 )}
@@ -791,7 +794,7 @@ export default function App() {
                                                         <span className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider">
                                                             {workoutConfigs[wKey].name}
                                                         </span>
-                                                        <span className={`${!athlete[wKey] ? 'text-zinc-700' : 'text-emerald-400 font-medium'}`}>
+                                                        <span className={`${!athlete[wKey] ? 'text-zinc-700' : 'text-gold-400 font-medium'}`}>
                                                             {athlete[wKey] ? `${formatScoreDisplay(athlete, wKey)} (${athlete[`${wKey}_rank` as keyof AthleteWithRank]})` : '--'}
                                                             {athlete[`${wKey}_verified` as keyof Athlete] && <ShieldCheck size={12} className="inline-block ml-1 text-blue-500"/>}
                                                         </span>
@@ -800,7 +803,7 @@ export default function App() {
                                             </div>
                                         ) : (
                                             <div className="mt-2 flex items-baseline gap-3">
-                                                <span className="text-2xl font-black text-emerald-400">
+                                                <span className="text-2xl font-black text-gold-400">
                                                    {formatScoreDisplay(athlete, activeTab as WorkoutId)}
                                                 </span>
                                                 <span className="text-xs text-zinc-500 font-medium uppercase">
@@ -810,7 +813,7 @@ export default function App() {
                                         )}
                                     </div>
 
-                                    {(isAdmin || athlete.createdBy === user?.uid) && <ChevronRight className="text-zinc-700 group-hover:text-emerald-500 transition-colors"/>}
+                                    {(isAdmin || athlete.createdBy === user?.uid) && <ChevronRight className="text-zinc-700 group-hover:text-gold-500 transition-colors"/>}
                                 </div>
                             </div>
                         ))}
@@ -874,7 +877,7 @@ export default function App() {
                     <button
                         type="submit"
                         disabled={!newAthlete.name}
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors uppercase tracking-wide disabled:bg-zinc-700 disabled:cursor-not-allowed"
+                        className="w-full bg-gold-600 hover:bg-gold-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors uppercase tracking-wide disabled:bg-zinc-700 disabled:cursor-not-allowed"
                     >
                         Create Profile
                     </button>
@@ -941,7 +944,7 @@ export default function App() {
                         />
                         <button
                             type="submit"
-                            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors uppercase tracking-wide"
+                            className="w-full bg-gold-600 hover:bg-gold-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors uppercase tracking-wide"
                         >
                             Add to Roster
                         </button>
@@ -961,7 +964,19 @@ export default function App() {
                 >
                     <form onSubmit={handleUpdateScore}>
                         <div className="grid grid-cols-1 gap-3 mb-6">
-                            {(['w1', 'w2', 'w3'] as const).map(workoutKey => {
+                            {(['w1', 'w2', 'w3'] as const).filter(workoutKey => workoutConfigs[workoutKey].published || isSuperAdmin).length === 0 ? (
+                                <div className="p-6 bg-zinc-950/50 rounded-lg border border-zinc-800 text-center">
+                                    <div className="text-zinc-500 mb-2">
+                                        <svg className="w-10 h-10 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <p className="text-sm text-zinc-400 font-medium">No workouts available yet</p>
+                                    <p className="text-xs text-zinc-500 mt-1">Workouts will appear here once they are published.</p>
+                                </div>
+                            ) : (['w1', 'w2', 'w3'] as const)
+                                .filter(workoutKey => workoutConfigs[workoutKey].published || isSuperAdmin)
+                                .map(workoutKey => {
                                 const config = workoutConfigs[workoutKey];
                                 const scoreValue = scoreForm[workoutKey];
                                 const verifiedKey = `${workoutKey}_verified` as const;
@@ -971,13 +986,16 @@ export default function App() {
                                 return (
                                     <div key={workoutKey} className="p-3 bg-zinc-950/50 rounded-lg border border-zinc-800">
                                         <div className="flex items-center justify-between mb-2">
-                                            <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wide">
+                                            <h4 className="text-xs font-bold text-gold-500 uppercase tracking-wide">
                                                 {config.name} Score
                                                 <span className="text-zinc-500 font-normal ml-1">
                                                     ({config.scoreType === 'time' ? 'Time' :
                                                       config.scoreType === 'time_cap_reps' ? 'Time/Reps' :
                                                       config.unit || 'reps'})
                                                 </span>
+                                                {!config.published && isSuperAdmin && (
+                                                    <span className="text-gold-500 font-normal ml-1">(Draft)</span>
+                                                )}
                                             </h4>
                                             {isAdmin && (
                                                 <div className="flex items-center">
@@ -987,12 +1005,16 @@ export default function App() {
                                                                ...scoreForm,
                                                                [verifiedKey]: e.target.checked
                                                            })}
-                                                           className="h-4 w-4 text-emerald-600 bg-zinc-800 border-zinc-700 rounded focus:ring-emerald-500"/>
+                                                           className="h-4 w-4 text-gold-600 bg-zinc-800 border-zinc-700 rounded focus:ring-gold-500"/>
                                                     <label htmlFor={verifiedKey}
                                                            className="ml-2 text-xs text-zinc-400">Verified</label>
                                                 </div>
                                             )}
                                         </div>
+
+                                        {config.description && (
+                                            <p className="text-xs text-zinc-400 mb-3 whitespace-pre-line">{config.description}</p>
+                                        )}
 
                                         {config.scoreType === 'time' && (
                                             <TimeInput
@@ -1014,7 +1036,7 @@ export default function App() {
                                                             [cappedKey]: e.target.checked,
                                                             [workoutKey]: '' // Clear score when toggling
                                                         })}
-                                                        className="h-4 w-4 text-amber-600 bg-zinc-800 border-zinc-700 rounded focus:ring-amber-500"
+                                                        className="h-4 w-4 text-gold-600 bg-zinc-800 border-zinc-700 rounded focus:ring-gold-500"
                                                     />
                                                     <label htmlFor={`${workoutKey}_capped_check`} className="text-xs text-zinc-400">
                                                         Did not finish (time capped)
@@ -1026,7 +1048,7 @@ export default function App() {
                                                             type="number"
                                                             step="1"
                                                             placeholder={`Reps completed (cap: ${config.timeCap ? Math.floor(config.timeCap / 60) : '?'} min)`}
-                                                            className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                                                            className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-gold-500 outline-none"
                                                             value={scoreValue as string}
                                                             onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
                                                                 ...scoreForm,
@@ -1060,7 +1082,7 @@ export default function App() {
                                                     type="number"
                                                     step="any"
                                                     placeholder={config.unit || '0'}
-                                                    className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                                                    className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-gold-500 outline-none"
                                                     value={scoreValue as string}
                                                     onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
                                                         ...scoreForm,
@@ -1133,7 +1155,7 @@ export default function App() {
                             )}
                             <button
                                 type="submit"
-                                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg transition-colors uppercase tracking-wide"
+                                className="flex-1 bg-gold-600 hover:bg-gold-500 text-white font-bold py-3 rounded-lg transition-colors uppercase tracking-wide"
                             >
                                 Save Changes
                             </button>
@@ -1158,7 +1180,7 @@ export default function App() {
                     <button
                         onClick={() => handleSetAthletesGym(user.uid, selectedGymId)}
                         disabled={!selectedGymId}
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:bg-zinc-700 disabled:text-zinc-400 disabled:cursor-not-allowed"
+                        className="w-full bg-gold-600 hover:bg-gold-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:bg-zinc-700 disabled:text-zinc-400 disabled:cursor-not-allowed"
                     >
                         <ChevronRight size={18}/>
                         Lets Go!
@@ -1205,7 +1227,7 @@ export default function App() {
                     />
                     <button
                         type="submit"
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors uppercase tracking-wide"
+                        className="w-full bg-gold-600 hover:bg-gold-500 text-white font-bold py-3 rounded-lg mt-2 transition-colors uppercase tracking-wide"
                     >
                         Create Gym
                     </button>

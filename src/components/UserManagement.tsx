@@ -98,7 +98,7 @@ const UserManagement: FC<UserManagementProps> = ({ athletes, gyms }) => {
                                         {athlete.superAdmin ? (
                                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-500/20 text-purple-400">Super Admin</span>
                                         ) : isGymAdmin ? (
-                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-500/20 text-emerald-400">Gym Admin</span>
+                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gold-500/20 text-gold-400">Gym Admin</span>
                                         ) : (
                                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-zinc-700/50 text-zinc-400">Member</span>
                                         )}
@@ -109,7 +109,7 @@ const UserManagement: FC<UserManagementProps> = ({ athletes, gyms }) => {
                                                 <button
                                                     onClick={() => handleToggleAdmin(athlete)}
                                                     disabled={!athlete.gymId}
-                                                    className={`p-1.5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${isGymAdmin ? 'text-amber-500 hover:bg-amber-500/20' : 'text-zinc-400 hover:bg-zinc-700'}`}
+                                                    className={`p-1.5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${isGymAdmin ? 'text-gold-500 hover:bg-gold-500/20' : 'text-zinc-400 hover:bg-zinc-700'}`}
                                                     title={isGymAdmin ? 'Demote from Gym Admin' : 'Promote to Gym Admin'}
                                                 >
                                                     {isGymAdmin ? <ShieldOff size={14} /> : <Shield size={14} />}

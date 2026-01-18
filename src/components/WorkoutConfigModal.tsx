@@ -1,5 +1,5 @@
 import { type FC, type ChangeEvent, useState, useEffect } from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, Eye, EyeOff } from 'lucide-react';
 import Modal from './Modal';
 import Select from './Select';
 import Input from './Input';
@@ -53,10 +53,39 @@ const WorkoutConfigModal: FC<WorkoutConfigModalProps> = ({ isOpen, onClose, work
 
     const renderWorkoutConfig = (workoutId: WorkoutId, config: WorkoutConfig) => {
         return (
-            <div key={workoutId} className="p-4 bg-zinc-950/50 rounded-lg border border-zinc-800 mb-4">
-                <div className="flex items-center gap-2 mb-3">
-                    <Settings size={16} className="text-emerald-500" />
-                    <h4 className="text-sm font-bold text-white uppercase tracking-wide">{config.name}</h4>
+            <div key={workoutId} className={`p-4 bg-zinc-950/50 rounded-lg border mb-4 ${config.published ? 'border-gold-500/50' : 'border-zinc-800'}`}>
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <Settings size={16} className={config.published ? 'text-gold-500' : 'text-zinc-500'} />
+                        <h4 className="text-sm font-bold text-white uppercase tracking-wide">{config.name}</h4>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => handleConfigChange(workoutId, 'published', !config.published)}
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                            config.published
+                                ? 'bg-gold-500/20 text-gold-400 border border-gold-500/30'
+                                : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-600'
+                        }`}
+                    >
+                        {config.published ? <Eye size={12} /> : <EyeOff size={12} />}
+                        {config.published ? 'Published' : 'Draft'}
+                    </button>
+                </div>
+
+                <div className="mb-4">
+                    <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wider mb-1.5">
+                        Description
+                    </label>
+                    <textarea
+                        placeholder="e.g., 21-15-9 Thrusters and Pull-ups..."
+                        value={config.description || ''}
+                        onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                            handleConfigChange(workoutId, 'description', e.target.value)
+                        }
+                        rows={3}
+                        className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent transition-all placeholder-zinc-600 text-sm resize-none"
+                    />
                 </div>
 
                 <Select
@@ -97,7 +126,7 @@ const WorkoutConfigModal: FC<WorkoutConfigModalProps> = ({ isOpen, onClose, work
                                 id={`${workoutId}_tiebreaker`}
                                 checked={config.hasTiebreaker || false}
                                 onChange={(e) => handleConfigChange(workoutId, 'hasTiebreaker', e.target.checked)}
-                                className="h-4 w-4 text-emerald-600 bg-zinc-800 border-zinc-700 rounded focus:ring-emerald-500"
+                                className="h-4 w-4 text-gold-600 bg-zinc-800 border-zinc-700 rounded focus:ring-gold-500"
                             />
                             <label htmlFor={`${workoutId}_tiebreaker`} className="ml-2 text-xs text-zinc-400">
                                 Has Tiebreaker Time
@@ -137,7 +166,7 @@ const WorkoutConfigModal: FC<WorkoutConfigModalProps> = ({ isOpen, onClose, work
             <button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg transition-colors uppercase tracking-wide disabled:bg-zinc-700 disabled:cursor-not-allowed"
+                className="w-full bg-gold-600 hover:bg-gold-500 text-white font-bold py-3 rounded-lg transition-colors uppercase tracking-wide disabled:bg-zinc-700 disabled:cursor-not-allowed"
             >
                 {saving ? 'Saving...' : 'Save Configuration'}
             </button>

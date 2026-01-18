@@ -1,5 +1,5 @@
 import {type FC, useState} from 'react';
-import {Building2, Settings, Users} from 'lucide-react';
+import {Building2, Settings, Users, Eye, EyeOff} from 'lucide-react';
 import WorkoutConfigModal from './WorkoutConfigModal';
 import GymManagement from './GymManagement';
 import UserManagement from './UserManagement';
@@ -71,20 +71,35 @@ const SuperAdminPanel: FC<SuperAdminPanelProps> = ({
                             {(['w1', 'w2', 'w3'] as const).map(w => {
                                 const config = workoutConfigs[w];
                                 return (
-                                    <div key={w} className="p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-                                        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">{config.name}</div>
-                                        <div className="text-sm font-bold text-white capitalize">
+                                    <div key={w} className={`p-3 bg-zinc-950 rounded-lg border ${config.published ? 'border-gold-500/50' : 'border-zinc-800'}`}>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="text-xs text-zinc-500 uppercase tracking-wider">{config.name}</div>
+                                            <div className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded ${
+                                                config.published
+                                                    ? 'bg-gold-500/20 text-gold-400'
+                                                    : 'bg-zinc-800 text-zinc-500'
+                                            }`}>
+                                                {config.published ? <Eye size={10} /> : <EyeOff size={10} />}
+                                                {config.published ? 'Live' : 'Draft'}
+                                            </div>
+                                        </div>
+                                        <div className="text-sm font-bold text-white capitalize mb-1">
                                             {config.scoreType.replace('_', ' ')}
                                         </div>
-                                        {config.unit && (
-                                            <div className="text-xs text-zinc-400">Unit: {config.unit}</div>
+                                        {config.description && (
+                                            <div className="text-xs text-zinc-400 mb-2 line-clamp-2">{config.description}</div>
                                         )}
-                                        {config.hasTiebreaker && (
-                                            <div className="text-xs text-purple-400">Has tiebreaker</div>
-                                        )}
-                                        {config.timeCap && (
-                                            <div className="text-xs text-zinc-400">Cap: {Math.floor(config.timeCap / 60)} min</div>
-                                        )}
+                                        <div className="flex flex-wrap gap-1">
+                                            {config.unit && (
+                                                <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">{config.unit}</span>
+                                            )}
+                                            {config.hasTiebreaker && (
+                                                <span className="text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded">Tiebreaker</span>
+                                            )}
+                                            {config.timeCap && (
+                                                <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">{Math.floor(config.timeCap / 60)} min cap</span>
+                                            )}
+                                        </div>
                                     </div>
                                 );
                             })}

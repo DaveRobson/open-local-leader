@@ -4,11 +4,13 @@ export type WorkoutId = 'w1' | 'w2' | 'w3';
 export interface WorkoutConfig {
     id: WorkoutId;
     name: string;           // "26.1", "26.2", "26.3"
+    description?: string;   // Workout description/movements
     scoreType: ScoreType;
     timeCap?: number;       // seconds, only for time_cap_reps
     unit?: string;          // 'reps', 'lbs', 'kg' for display
     hasTiebreaker?: boolean;
     tiebreakerLabel?: string; // e.g., "Time after round 2"
+    published?: boolean;    // Whether workout is visible to athletes
 }
 
 export interface WorkoutConfigs {
