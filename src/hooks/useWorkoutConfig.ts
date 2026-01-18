@@ -20,13 +20,18 @@ export function useWorkoutConfig() {
         const unsubscribe = onSnapshot(docRef, (snapshot) => {
             if (snapshot.exists()) {
                 const data = snapshot.data();
+                // Deep merge to ensure all nested properties are present
                 setWorkoutConfigs({
-                    w1: data.w1 || defaultWorkoutConfigs.w1,
-                    w2: data.w2 || defaultWorkoutConfigs.w2,
-                    w3: data.w3 || defaultWorkoutConfigs.w3,
+                    w1: { ...defaultWorkoutConfigs.w1, ...data.w1 },
+                    w2: { ...defaultWorkoutConfigs.w2, ...data.w2 },
+                    w3: { ...defaultWorkoutConfigs.w3, ...data.w3 },
                 });
             } else {
-                // If no config exists, use defaults
+                // This is the critical fallback for production issues.
+                console.warn(
+                    'Workout config not found! Falling back to default (all workouts unpublished). ' +
+                    'Create a "current" document in the "workouts" collection in Firestore.'
+                );
                 setWorkoutConfigs(defaultWorkoutConfigs);
             }
             setLoading(false);

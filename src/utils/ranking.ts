@@ -27,11 +27,6 @@ const getScore = (val: number | string | undefined) => val ? parseFloat(String(v
 
 /**
  * Sort athletes by performance for a given workout based on score type.
- * Per SCORING.md:
- * - AMRAP (reps): SORT BY total_reps DESC, tiebreak_time ASC
- * - For Time (time_cap_reps): Finishers by time ASC, then non-finishers by reps DESC, tiebreak_time ASC
- * - Max Lift (weight): SORT BY load_weight DESC, tiebreak_time ASC
- * - Time: SORT BY time ASC
  */
 const sortByPerformance = (
     athletes: AthleteWithRank[],
@@ -57,38 +52,19 @@ const sortByPerformance = (
         if (!aHasScore && !bHasScore) return 0;
 
         if (config.scoreType === 'time') {
-            // Pure time workout: lower time = better
             const timeDiff = scoreA - scoreB;
-            if (timeDiff === 0) {
-                return aTB - bTB; // Tiebreaker if times are equal
-            }
-            return timeDiff;
+            return timeDiff === 0 ? aTB - bTB : timeDiff;
         } else if (config.scoreType === 'time_cap_reps') {
-            // For Time with cap: Finishers beat non-finishers
             const aFinished = !aCapped;
             const bFinished = !bCapped;
-
             if (aFinished && !bFinished) return -1;
             if (!aFinished && bFinished) return 1;
-
-            if (aFinished && bFinished) {
-                // Among finishers: lower time = better
-                return scoreA - scoreB;
-            }
-
-            // Among non-finishers (capped): higher reps = better, then tiebreaker
+            if (aFinished && bFinished) return scoreA - scoreB;
             const repsDiff = scoreB - scoreA;
-            if (repsDiff === 0) {
-                return aTB - bTB; // Lower tiebreaker = better
-            }
-            return repsDiff;
+            return repsDiff === 0 ? aTB - bTB : repsDiff;
         } else {
-            // reps, weight: higher = better, then tiebreaker
             const primaryDiff = scoreB - scoreA;
-            if (primaryDiff === 0) {
-                return aTB - bTB; // Lower tiebreaker time = better
-            }
-            return primaryDiff;
+            return primaryDiff === 0 ? aTB - bTB : primaryDiff;
         }
     });
 };
@@ -108,15 +84,11 @@ const scoresAreEqual = (
     const scoreB = getScore(b[workoutKey]);
 
     if (scoreA !== scoreB) return false;
-
-    // For time_cap_reps, also check capped status
     if (config.scoreType === 'time_cap_reps') {
         const aCapped = a[cappedKey] as boolean | undefined;
         const bCapped = b[cappedKey] as boolean | undefined;
         if (aCapped !== bCapped) return false;
     }
-
-    // Check tiebreaker
     const aTB = (a[tiebreakerKey] as number) || 0;
     const bTB = (b[tiebreakerKey] as number) || 0;
     return aTB === bTB;
@@ -133,97 +105,64 @@ export const calculateRankings = (
     // 1. Initialize all athletes with ranking fields
     const processed: AthleteWithRank[] = athletes.map(a => ({...a, totalPoints: 0, participation: 0}));
 
-    // 2. Calculate ranks for each workout with division offset
-    // Per SCORING.md: Scaled ranks start after ALL Rx, Foundations after ALL Scaled
+    // 2. Calculate ranks for each published workout
     (['w1', 'w2', 'w3'] as const).forEach(w => {
         const config = workoutConfigs[w];
-
-        // Don't rank workouts that are not published
-        if (!config.published) {
-            return;
-        }
+        if (!config.published) return;
 
         const genders: ('M' | 'F')[] = ['M', 'F'];
-
         genders.forEach(gender => {
-            // Get athletes by division for this gender
-            const rxAthletes = processed.filter(a => a.division === 'Rx' && a.gender === gender);
-            const scaledAthletes = processed.filter(a => a.division === 'Scaled' && a.gender === gender);
-            const foundationsAthletes = processed.filter(a => a.division === 'Foundations' && a.gender === gender);
+            const divisions = {
+                Rx: processed.filter(a => a.division === 'Rx' && a.gender === gender),
+                Scaled: processed.filter(a => a.division === 'Scaled' && a.gender === gender),
+                Foundations: processed.filter(a => a.division === 'Foundations' && a.gender === gender),
+            };
 
-            // Sort each division group by performance
-            sortByPerformance(rxAthletes, w, config);
-            sortByPerformance(scaledAthletes, w, config);
-            sortByPerformance(foundationsAthletes, w, config);
+            sortByPerformance(divisions.Rx, w, config);
+            sortByPerformance(divisions.Scaled, w, config);
+            sortByPerformance(divisions.Foundations, w, config);
 
-            // Assign ranks with division offset
-            // Rx athletes: ranks 1 to N
-            let currentRank = 1;
-            for (let i = 0; i < rxAthletes.length; i++) {
-                const athlete = rxAthletes[i];
-                const prevAthlete = rxAthletes[i - 1];
-
-                if (i > 0 && scoresAreEqual(athlete, prevAthlete, w, config)) {
-                    athlete[`${w}_rank`] = prevAthlete[`${w}_rank`];
-                } else {
-                    athlete[`${w}_rank`] = currentRank;
+            let rankOffset = 0;
+            (['Rx', 'Scaled', 'Foundations'] as const).forEach(div => {
+                const group = divisions[div];
+                let currentRank = rankOffset + 1;
+                for (let i = 0; i < group.length; i++) {
+                    const athlete = group[i];
+                    const prevAthlete = group[i - 1];
+                    if (i > 0 && scoresAreEqual(athlete, prevAthlete, w, config)) {
+                        athlete[`${w}_rank`] = prevAthlete[`${w}_rank`];
+                    } else {
+                        athlete[`${w}_rank`] = currentRank;
+                    }
+                    currentRank++;
                 }
-                currentRank++;
-            }
-
-            // Scaled athletes: ranks start after all Rx athletes
-            const scaledStartRank = rxAthletes.length + 1;
-            currentRank = scaledStartRank;
-            for (let i = 0; i < scaledAthletes.length; i++) {
-                const athlete = scaledAthletes[i];
-                const prevAthlete = scaledAthletes[i - 1];
-
-                if (i > 0 && scoresAreEqual(athlete, prevAthlete, w, config)) {
-                    athlete[`${w}_rank`] = prevAthlete[`${w}_rank`];
-                } else {
-                    athlete[`${w}_rank`] = currentRank;
-                }
-                currentRank++;
-            }
-
-            // Foundations athletes: ranks start after all Scaled athletes
-            const foundationsStartRank = rxAthletes.length + scaledAthletes.length + 1;
-            currentRank = foundationsStartRank;
-            for (let i = 0; i < foundationsAthletes.length; i++) {
-                const athlete = foundationsAthletes[i];
-                const prevAthlete = foundationsAthletes[i - 1];
-
-                if (i > 0 && scoresAreEqual(athlete, prevAthlete, w, config)) {
-                    athlete[`${w}_rank`] = prevAthlete[`${w}_rank`];
-                } else {
-                    athlete[`${w}_rank`] = currentRank;
-                }
-                currentRank++;
-            }
+                rankOffset += group.length;
+            });
         });
     });
 
-    // 3. Calculate total points with missing score penalty
-    // Per SCORING.md: Missing score = Total_Participants + 1
+    // 3. Calculate total points, but only for "live" workouts.
+    // A workout is live if it's published AND at least one person has submitted a score.
+    const liveWorkouts = (['w1', 'w2', 'w3'] as const).filter(wKey =>
+        workoutConfigs[wKey].published && processed.some(p => getScore(p[wKey]) > 0)
+    );
 
-    // Determine if each workout is "live" (published and has scores)
-    const w1IsLive = !!workoutConfigs.w1.published && processed.some(a => getScore(a.w1) > 0);
-    const w2IsLive = !!workoutConfigs.w2.published && processed.some(a => getScore(a.w2) > 0);
-    const w3IsLive = !!workoutConfigs.w3.published && processed.some(a => getScore(a.w3) > 0);
+    if (liveWorkouts.length > 0) {
+        processed.forEach(a => {
+            const sameGenderCount = processed.filter(p => p.gender === a.gender).length;
+            const missedPenalty = sameGenderCount + 1;
 
-    processed.forEach(a => {
-        // Count total participants in same gender for penalty calculation
-        const sameGenderCount = processed.filter(p => p.gender === a.gender).length;
-        const missedPenalty = sameGenderCount + 1;
-
-        // If athlete has a score, use their rank; otherwise apply penalty. Only for live workouts.
-        const w1Points = w1IsLive ? (getScore(a.w1) > 0 ? (a.w1_rank || missedPenalty) : missedPenalty) : 0;
-        const w2Points = w2IsLive ? (getScore(a.w2) > 0 ? (a.w2_rank || missedPenalty) : missedPenalty) : 0;
-        const w3Points = w3IsLive ? (getScore(a.w3) > 0 ? (a.w3_rank || missedPenalty) : missedPenalty) : 0;
-
-        a.totalPoints = w1Points + w2Points + w3Points;
-        a.participation = (getScore(a.w1) > 0 ? 1 : 0) + (getScore(a.w2) > 0 ? 1 : 0) + (getScore(a.w3) > 0 ? 1 : 0);
-    });
+            liveWorkouts.forEach(wKey => {
+                const score = getScore(a[wKey]);
+                if (score > 0) {
+                    a.totalPoints += a[`${wKey}_rank`] || missedPenalty;
+                    a.participation++;
+                } else {
+                    a.totalPoints += missedPenalty;
+                }
+            });
+        });
+    }
 
     // 4. Apply user's filters to the fully processed list
     let filtered = processed;
@@ -241,11 +180,8 @@ export const calculateRankings = (
     }
 
     // 5. Sort the final list for display
-    // Per SCORING.md: Lowest total score wins
     filtered.sort((a, b) => {
-        // First by participation (more workouts completed = ranked higher)
         if (b.participation !== a.participation) return b.participation - a.participation;
-        // Then by total points (lower is better)
         return a.totalPoints - b.totalPoints;
     });
 
