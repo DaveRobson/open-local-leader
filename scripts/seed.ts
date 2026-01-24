@@ -1,5 +1,6 @@
 
 import admin from 'firebase-admin';
+import { randomUUID } from 'crypto';
 
 // Initialize the Firebase Admin SDK
 const projectId = 'open-local-leaderboard';
@@ -39,14 +40,63 @@ const seed = async () => {
   });
   console.log('Super admin created');
 
-  // Create Gym
+  // Create Gym with charity partners
   const gymId = 'CF51';
   const gymAdminUid = 'gymadmin';
+  const charityTimestamp = admin.firestore.Timestamp.now();
+
   await db.collection('gyms').doc(gymId).set({
     name: 'CrossFit 51',
     admins: [gymAdminUid],
+    charities: [
+      {
+        id: randomUUID(),
+        name: 'American Red Cross',
+        description: 'The American Red Cross prevents and alleviates human suffering in the face of emergencies by mobilizing the power of volunteers and the generosity of donors.',
+        websiteUrl: 'https://www.redcross.org',
+        logoUrl: 'https://www.redcross.org/content/dam/redcross/about-us/publications/2023/RedCross_2019.png.img.png',
+        addedAt: charityTimestamp,
+        addedBy: gymAdminUid,
+      },
+      {
+        id: randomUUID(),
+        name: 'Wounded Warrior Project',
+        description: 'Wounded Warrior Project honors and empowers Wounded Warriors through programs and services that help veterans overcome challenges and build strong futures.',
+        websiteUrl: 'https://www.woundedwarriorproject.org',
+        logoUrl: 'https://www.woundedwarriorproject.org/media/wjbfo20g/wwp-logo-stacked.png',
+        addedAt: charityTimestamp,
+        addedBy: gymAdminUid,
+      },
+      {
+        id: randomUUID(),
+        name: 'Feeding America',
+        description: 'Feeding America is a nationwide network of food banks that feeds more than 46 million people through food pantries, soup kitchens, shelters, and other community-based agencies.',
+        websiteUrl: 'https://www.feedingamerica.org',
+        logoUrl: '',
+        addedAt: charityTimestamp,
+        addedBy: gymAdminUid,
+      },
+      {
+        id: randomUUID(),
+        name: 'St. Jude Children\'s Research Hospital',
+        description: 'St. Jude is leading the way the world understands, treats and defeats childhood cancer and other life-threatening diseases. Families never receive a bill from St. Jude.',
+        websiteUrl: 'https://www.stjude.org',
+        logoUrl: '',
+        addedAt: charityTimestamp,
+        addedBy: gymAdminUid,
+      },
+      {
+        id: randomUUID(),
+        name: 'Local Youth Sports Foundation',
+        description: 'Supporting youth athletics in our community through equipment donations, scholarships, and mentorship programs. Building strong kids through sports and character development.',
+        websiteUrl: 'https://example.org/youth-sports',
+        logoUrl: '',
+        addedAt: charityTimestamp,
+        addedBy: gymAdminUid,
+      },
+    ],
   });
-  console.log('Gym created');
+  console.log('Gym created with charity partners');
 
   // Create Gym Admin
   await admin.auth().createUser({

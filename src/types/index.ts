@@ -85,4 +85,11 @@ export type ViewState = 'landing' | 'app';
 export type DivisionFilter = 'all' | 'Rx' | 'Scaled' | 'Foundations';
 export type GenderFilter = 'all' | 'M' | 'F';
 export type AgeGroupFilter = string; // e.g., 'all', '18-34', etc.
-export type ActiveTab = 'leaderboard' | 'w1' | 'w2' | 'w3' | 'admin' | 'superAdmin';
+export type ActiveTab = 'leaderboard' | 'w1' | 'w2' | 'w3' | 'admin' | 'superAdmin' | 'charities';
+
+export interface CharityForm {
+    name: string;
+    description: string;
+    websiteUrl: string;
+    logoUrl?: string;
+}

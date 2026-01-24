@@ -7,7 +7,7 @@ import {
     signOut,
 } from 'firebase/auth';
 import {deleteDoc, doc, serverTimestamp, setDoc, updateDoc} from 'firebase/firestore';
-import {ChevronRight, Filter, Globe, LogOut, MapPin, Plus, Search, ShieldCheck, Trash2, Trophy, X} from 'lucide-react';
+import {ChevronRight, Filter, LogOut, MapPin, Plus, Search, ShieldCheck, Trash2, Trophy, X} from 'lucide-react';
 
 import {auth, db} from './config/firebase';
 import {
@@ -28,6 +28,8 @@ import Input from './components/Input';
 import Select from './components/Select';
 import TimeInput from './components/TimeInput';
 import SuperAdminPanel from './components/SuperAdminPanel';
+import { CharitiesDisplay } from './components/CharitiesDisplay';
+import { CharityManagement } from './components/CharityManagement';
 import {useAuth} from './hooks/useAuth';
 import {calculateRankings} from './utils/ranking';
 import {useUserProfile} from "./hooks/useUserProfile.ts";
@@ -550,20 +552,6 @@ export default function App() {
             <nav className="sticky top-0 z-30 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800">
                 <div className="max-w-6xl mx-auto px-4 py-3">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-zinc-900 p-2 rounded-lg border border-zinc-800">
-                                {filterGym ? <MapPin className="w-5 h-5 text-gold-500"/> :
-                                    <Globe className="w-5 h-5 text-blue-500"/>}
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-sm font-black uppercase tracking-tighter text-white leading-none">
-                                  {gyms.find(g => g.id === filterGym)?.name || 'Global Arena'}
-                                </span>
-                                <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">
-                                  {filterGym ? 'Leaderboard' : 'All Gyms'}
-                                </span>
-                            </div>
-                        </div>
                         <div className="flex items-center gap-2">
                             {userAthlete && (
                                 <button
@@ -651,6 +639,50 @@ export default function App() {
                     </div>
                 </div>
 
+                {/* Gym Profile Section - only show when viewing specific gym */}
+                {filterGym && (
+                    <div className="max-w-6xl mx-auto px-4 py-6 border-b border-zinc-800">
+                        <div className="flex items-center gap-4">
+                            {/* Gym Logo/Icon */}
+                            <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
+                                {gyms.find(g => g.id === filterGym)?.logoUrl ? (
+                                    <img
+                                        src={gyms.find(g => g.id === filterGym)?.logoUrl}
+                                        alt="Gym Logo"
+                                        className="w-16 h-16 object-cover rounded-lg"
+                                    />
+                                ) : (
+                                    <MapPin className="w-16 h-16 text-gold-500"/>
+                                )}
+                            </div>
+
+                            {/* Gym Info */}
+                            <div className="flex-1">
+                                <h2 className="text-2xl font-black uppercase tracking-tighter text-white">
+                                    {gyms.find(g => g.id === filterGym)?.name}
+                                </h2>
+                                <p className="text-sm text-zinc-400 mt-1">
+                                    {displayedAthletes.length} Athletes
+                                    {gyms.find(g => g.id === filterGym)?.charities?.length
+                                        ? ` • ${gyms.find(g => g.id === filterGym)?.charities?.length} Partner Charities`
+                                        : ''
+                                    }
+                                </p>
+                            </div>
+
+                            {/* Quick Admin Access (if admin) */}
+                            {isAdmin && (
+                                <button
+                                    onClick={() => setActiveTab('admin')}
+                                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+                                >
+                                    Manage Gym
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 <div
                     className="max-w-6xl mx-auto px-4 flex overflow-x-auto no-scrollbar gap-6 border-b border-zinc-800/50 pt-2">
                     {[
@@ -659,6 +691,9 @@ export default function App() {
                         ...(workoutConfigs.w1.published || isSuperAdmin ? [{id: 'w1', label: workoutConfigs.w1.name, published: workoutConfigs.w1.published}] : []),
                         ...(workoutConfigs.w2.published || isSuperAdmin ? [{id: 'w2', label: workoutConfigs.w2.name, published: workoutConfigs.w2.published}] : []),
                         ...(workoutConfigs.w3.published || isSuperAdmin ? [{id: 'w3', label: workoutConfigs.w3.name, published: workoutConfigs.w3.published}] : []),
+                        ...(filterGym && gyms.find(g => g.id === filterGym)?.charities !== undefined
+                            ? [{id: 'charities', label: 'Charities', published: true}]
+                            : []),
                         ...(isAdmin ? [{id: 'admin', label: 'Admin', published: true}] : []),
                         ...(isSuperAdmin ? [{id: 'superAdmin', label: 'Super Admin', published: true}] : []),
                     ].map(tab => (
@@ -694,6 +729,17 @@ export default function App() {
                     <div className="flex justify-center py-20">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold-500"></div>
                     </div>
+                ) : activeTab === 'charities' ? (
+                    filterGym ? (
+                        <CharitiesDisplay
+                            charities={gyms.find(g => g.id === filterGym)?.charities || []}
+                            gymName={gyms.find(g => g.id === filterGym)?.name || ''}
+                        />
+                    ) : (
+                        <div className="text-center py-10 text-zinc-500">
+                            Select a gym to view charities
+                        </div>
+                    )
                 ) : activeTab === 'admin' ? (
                     <div>
                         <h2 className="text-lg font-bold text-white mb-3">Pending Verifications</h2>
@@ -726,6 +772,18 @@ export default function App() {
                                 <ShieldCheck className="w-10 h-10 text-zinc-700 mx-auto mb-3"/>
                                 <h3 className="text-md font-bold text-white">All Scores Verified</h3>
                                 <p className="text-zinc-500 text-sm mt-1">Nothing to see here!</p>
+                            </div>
+                        )}
+
+                        {/* Charity Management Section */}
+                        {myGymId && (
+                            <div className="mt-8">
+                                <CharityManagement
+                                    gymId={myGymId}
+                                    charities={gyms.find(g => g.id === myGymId)?.charities || []}
+                                    currentUserId={user?.uid || ''}
+                                    onUpdate={() => {/* refetch handled by real-time listener */}}
+                                />
                             </div>
                         )}
                     </div>
