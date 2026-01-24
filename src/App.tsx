@@ -634,42 +634,46 @@ export default function App() {
                     </div>
                 </div>
 
-                {/* Tabs and Filter Pills Row */}
-                <div className="max-w-6xl mx-auto px-4 border-b border-zinc-800/50 relative">
-                    <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pr-12">
-                        {/* Tabs */}
-                        <div className="flex gap-6 flex-shrink-0">
-                            {[
-                                {id: 'leaderboard', label: 'Overall', published: true},
-                                // Only show workout tabs if published (or if super admin)
-                                ...(workoutConfigs.w1.published || isSuperAdmin ? [{id: 'w1', label: workoutConfigs.w1.name, published: workoutConfigs.w1.published}] : []),
-                                ...(workoutConfigs.w2.published || isSuperAdmin ? [{id: 'w2', label: workoutConfigs.w2.name, published: workoutConfigs.w2.published}] : []),
-                                ...(workoutConfigs.w3.published || isSuperAdmin ? [{id: 'w3', label: workoutConfigs.w3.name, published: workoutConfigs.w3.published}] : []),
-                                ...(filterGym && gyms.find(g => g.id === filterGym)?.charities !== undefined
-                                    ? [{id: 'charities', label: 'Charities', published: true}]
-                                    : []),
-                                ...(isAdmin ? [{id: 'admin', label: 'Admin', published: true}] : []),
-                                ...(isSuperAdmin ? [{id: 'superAdmin', label: 'Super Admin', published: true}] : []),
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as ActiveTab)}
-                                    className={`
-                                        py-3 text-sm font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors
-                                        ${activeTab === tab.id
-                                        ? (tab.id === 'superAdmin' ? 'border-purple-500 text-white' : 'border-gold-500 text-white')
-                                        : 'border-transparent text-zinc-500 hover:text-zinc-300'}
-                                        ${!tab.published && isSuperAdmin ? 'opacity-50' : ''}
-                                      `}
-                                    title={!tab.published ? 'Not published yet' : ''}
-                                >
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </div>
+                {/* Tabs Row */}
+                <div className="max-w-6xl mx-auto px-4 border-b border-zinc-800/50">
+                    <div className="flex gap-6 overflow-x-auto no-scrollbar">
+                        {[
+                            {id: 'leaderboard', label: 'Overall', published: true},
+                            // Only show workout tabs if published (or if super admin)
+                            ...(workoutConfigs.w1.published || isSuperAdmin ? [{id: 'w1', label: workoutConfigs.w1.name, published: workoutConfigs.w1.published}] : []),
+                            ...(workoutConfigs.w2.published || isSuperAdmin ? [{id: 'w2', label: workoutConfigs.w2.name, published: workoutConfigs.w2.published}] : []),
+                            ...(workoutConfigs.w3.published || isSuperAdmin ? [{id: 'w3', label: workoutConfigs.w3.name, published: workoutConfigs.w3.published}] : []),
+                            ...(filterGym && gyms.find(g => g.id === filterGym)?.charities !== undefined
+                                ? [{id: 'charities', label: 'Charities', published: true}]
+                                : []),
+                            ...(isAdmin ? [{id: 'admin', label: 'Admin', published: true}] : []),
+                            ...(isSuperAdmin ? [{id: 'superAdmin', label: 'Super Admin', published: true}] : []),
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as ActiveTab)}
+                                className={`
+                                    py-3 text-sm font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors
+                                    ${activeTab === tab.id
+                                    ? (tab.id === 'superAdmin' ? 'border-purple-500 text-white' : 'border-gold-500 text-white')
+                                    : 'border-transparent text-zinc-500 hover:text-zinc-300'}
+                                    ${!tab.published && isSuperAdmin ? 'opacity-50' : ''}
+                                  `}
+                                title={!tab.published ? 'Not published yet' : ''}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </nav>
 
+            {/* Filter Pills Section - Below tabs, outside nav */}
+            <div className="sticky top-[180px] z-20 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800/50">
+                <div className="max-w-6xl mx-auto px-4 py-2">
+                    <div className="flex items-center justify-between gap-4">
                         {/* Filter Pills */}
-                        <div className="flex gap-2 items-center flex-shrink-0">
+                        <div className="flex gap-2 items-center flex-wrap flex-1">
                             {filterDivision !== 'all' && (
                                 <button
                                     onClick={() => setIsFilterPopoutOpen(true)}
@@ -706,19 +710,22 @@ export default function App() {
                                     <X size={12} onClick={(e) => { e.stopPropagation(); setSearchTerm(''); }} />
                                 </button>
                             )}
+                            {(filterDivision === 'all' && filterGender === 'all' && filterAgeGroup === 'all' && !searchTerm) && (
+                                <span className="text-xs text-zinc-500">No filters applied</span>
+                            )}
                         </div>
-                    </div>
 
-                    {/* Sticky Filter Button */}
-                    <button
-                        onClick={() => setIsFilterPopoutOpen(!isFilterPopoutOpen)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors"
-                        title="Filters"
-                    >
-                        <Filter size={16} className="text-zinc-400" />
-                    </button>
+                        {/* Filter Button */}
+                        <button
+                            onClick={() => setIsFilterPopoutOpen(!isFilterPopoutOpen)}
+                            className="p-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors flex-shrink-0"
+                            title="Filters"
+                        >
+                            <Filter size={16} className="text-zinc-400" />
+                        </button>
+                    </div>
                 </div>
-            </nav>
+            </div>
 
             <main className="max-w-6xl mx-auto px-4 py-6 pb-24">
 
