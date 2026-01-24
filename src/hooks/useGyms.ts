@@ -19,6 +19,8 @@ export interface Gym {
     admins: string[];
     charities?: Charity[];   // Array of charity objects
     logoUrl?: string;        // Optional gym logo for profile
+    location?: string;       // Optional gym location/address
+    websiteUrl?: string;     // Optional gym website URL
 }
 
 export function useGyms() {

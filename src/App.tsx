@@ -668,74 +668,77 @@ export default function App() {
                 </div>
             </nav>
 
-            {/* Filter Pills Section - Below tabs, outside nav */}
-            <div className="sticky top-[180px] z-20 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800/50">
-                <div className="max-w-6xl mx-auto px-4 py-2">
-                    <div className="flex items-center justify-between gap-4">
-                        {/* Filter Pills */}
-                        <div className="flex gap-2 items-center flex-wrap flex-1">
-                            {filterDivision !== 'all' && (
-                                <button
-                                    onClick={() => setIsFilterPopoutOpen(true)}
-                                    className="px-3 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 rounded-full text-xs font-medium hover:bg-gold-500/30 transition-colors flex items-center gap-1.5"
-                                >
-                                    {filterDivision}
-                                    <X size={12} onClick={(e) => { e.stopPropagation(); setFilterDivision('all'); }} />
-                                </button>
-                            )}
-                            {filterGender !== 'all' && (
-                                <button
-                                    onClick={() => setIsFilterPopoutOpen(true)}
-                                    className="px-3 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 rounded-full text-xs font-medium hover:bg-gold-500/30 transition-colors flex items-center gap-1.5"
-                                >
-                                    {filterGender === 'M' ? 'Male' : 'Female'}
-                                    <X size={12} onClick={(e) => { e.stopPropagation(); setFilterGender('all'); }} />
-                                </button>
-                            )}
-                            {filterAgeGroup !== 'all' && (
-                                <button
-                                    onClick={() => setIsFilterPopoutOpen(true)}
-                                    className="px-3 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 rounded-full text-xs font-medium hover:bg-gold-500/30 transition-colors flex items-center gap-1.5"
-                                >
-                                    {AGE_GROUPS.find(g => g.value === filterAgeGroup)?.label}
-                                    <X size={12} onClick={(e) => { e.stopPropagation(); setFilterAgeGroup('all'); }} />
-                                </button>
-                            )}
-                            {searchTerm && (
-                                <button
-                                    onClick={() => setIsFilterPopoutOpen(true)}
-                                    className="px-3 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 rounded-full text-xs font-medium hover:bg-gold-500/30 transition-colors flex items-center gap-1.5"
-                                >
-                                    "{searchTerm}"
-                                    <X size={12} onClick={(e) => { e.stopPropagation(); setSearchTerm(''); }} />
-                                </button>
-                            )}
-                            {(filterDivision === 'all' && filterGender === 'all' && filterAgeGroup === 'all' && !searchTerm) && (
-                                <span className="text-xs text-zinc-500">No filters applied</span>
-                            )}
-                        </div>
+            {/* Filter Pills Section - Only show for leaderboard and workout tabs */}
+            {(activeTab === 'leaderboard' || activeTab === 'w1' || activeTab === 'w2' || activeTab === 'w3') && (
+                <div className="sticky top-0 z-20 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800/50">
+                    <div className="max-w-6xl mx-auto px-4 py-2">
+                        <div className="flex items-center justify-between gap-4">
+                            {/* Filter Pills */}
+                            <div className="flex gap-2 items-center flex-wrap flex-1">
+                                {filterDivision !== 'all' && (
+                                    <button
+                                        onClick={() => setIsFilterPopoutOpen(true)}
+                                        className="px-3 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 rounded-full text-xs font-medium hover:bg-gold-500/30 transition-colors flex items-center gap-1.5"
+                                    >
+                                        {filterDivision}
+                                        <X size={12} onClick={(e) => { e.stopPropagation(); setFilterDivision('all'); }} />
+                                    </button>
+                                )}
+                                {filterGender !== 'all' && (
+                                    <button
+                                        onClick={() => setIsFilterPopoutOpen(true)}
+                                        className="px-3 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 rounded-full text-xs font-medium hover:bg-gold-500/30 transition-colors flex items-center gap-1.5"
+                                    >
+                                        {filterGender === 'M' ? 'Male' : 'Female'}
+                                        <X size={12} onClick={(e) => { e.stopPropagation(); setFilterGender('all'); }} />
+                                    </button>
+                                )}
+                                {filterAgeGroup !== 'all' && (
+                                    <button
+                                        onClick={() => setIsFilterPopoutOpen(true)}
+                                        className="px-3 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 rounded-full text-xs font-medium hover:bg-gold-500/30 transition-colors flex items-center gap-1.5"
+                                    >
+                                        {AGE_GROUPS.find(g => g.value === filterAgeGroup)?.label}
+                                        <X size={12} onClick={(e) => { e.stopPropagation(); setFilterAgeGroup('all'); }} />
+                                    </button>
+                                )}
+                                {searchTerm && (
+                                    <button
+                                        onClick={() => setIsFilterPopoutOpen(true)}
+                                        className="px-3 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 rounded-full text-xs font-medium hover:bg-gold-500/30 transition-colors flex items-center gap-1.5"
+                                    >
+                                        "{searchTerm}"
+                                        <X size={12} onClick={(e) => { e.stopPropagation(); setSearchTerm(''); }} />
+                                    </button>
+                                )}
+                                {(filterDivision === 'all' && filterGender === 'all' && filterAgeGroup === 'all' && !searchTerm) && (
+                                    <span className="text-xs text-zinc-500">No filters applied</span>
+                                )}
+                            </div>
 
-                        {/* Filter Button */}
-                        <button
-                            onClick={() => setIsFilterPopoutOpen(!isFilterPopoutOpen)}
-                            className="p-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors flex-shrink-0"
-                            title="Filters"
-                        >
-                            <Filter size={16} className="text-zinc-400" />
-                        </button>
+                            {/* Filter Button */}
+                            <button
+                                onClick={() => setIsFilterPopoutOpen(!isFilterPopoutOpen)}
+                                className="p-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors flex-shrink-0"
+                                title="Filters"
+                            >
+                                <Filter size={16} className="text-zinc-400" />
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             <main className="max-w-6xl mx-auto px-4 py-6 pb-24">
 
-                <div className="flex justify-between items-end mb-4">
-                    <p className="text-xs text-zinc-500 font-medium uppercase tracking-wide">
-                        Showing {displayedAthletes.length} Athletes
-                        {filterGym ? ` in ${gyms.find(g => g.id === filterGym)?.name}` : ' Globally'}
-                    </p>
-
-                </div>
+                {activeTab !== 'charities' && activeTab !== 'admin' && activeTab !== 'superAdmin' && (
+                    <div className="flex justify-between items-end mb-4">
+                        <p className="text-xs text-zinc-500 font-medium uppercase tracking-wide">
+                            Showing {displayedAthletes.length} Athletes
+                            {filterGym ? ` in ${gyms.find(g => g.id === filterGym)?.name}` : ' Globally'}
+                        </p>
+                    </div>
+                )}
 
                 {loading ? (
                     <div className="flex justify-center py-20">
@@ -784,6 +787,145 @@ export default function App() {
                                 <ShieldCheck className="w-10 h-10 text-zinc-700 mx-auto mb-3"/>
                                 <h3 className="text-md font-bold text-white">All Scores Verified</h3>
                                 <p className="text-zinc-500 text-sm mt-1">Nothing to see here!</p>
+                            </div>
+                        )}
+
+                        {/* Gym Profile Management Section */}
+                        {myGymId && (
+                            <div className="mt-8">
+                                <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+                                    <MapPin className="w-5 h-5 text-gold-500" />
+                                    Gym Profile
+                                </h2>
+                                <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Logo Preview */}
+                                        <div className="lg:col-span-2">
+                                            <div className="flex items-center gap-4">
+                                                <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
+                                                    {gyms.find(g => g.id === myGymId)?.logoUrl ? (
+                                                        <img
+                                                            src={gyms.find(g => g.id === myGymId)?.logoUrl}
+                                                            alt="Gym Logo"
+                                                            className="w-20 h-20 object-cover rounded"
+                                                        />
+                                                    ) : (
+                                                        <MapPin className="w-20 h-20 text-zinc-600" />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-medium text-white mb-1">
+                                                        Gym Logo
+                                                    </p>
+                                                    <p className="text-xs text-zinc-500">
+                                                        Your logo appears on the gym profile and leaderboard
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Gym Name */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-zinc-300 mb-2">
+                                                Gym Name *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g., CrossFit Central"
+                                                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500"
+                                                defaultValue={gyms.find(g => g.id === myGymId)?.name || ''}
+                                                onBlur={async (e) => {
+                                                    const name = e.target.value.trim();
+                                                    if (!name) {
+                                                        alert('Gym name is required');
+                                                        e.target.value = gyms.find(g => g.id === myGymId)?.name || '';
+                                                        return;
+                                                    }
+                                                    try {
+                                                        await updateDoc(doc(db, 'gyms', myGymId), {
+                                                            name: name,
+                                                        });
+                                                    } catch (error) {
+                                                        console.error('Error updating gym name:', error);
+                                                        alert('Failed to update gym name. Please try again.');
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Location */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-zinc-300 mb-2">
+                                                Location
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g., Austin, TX"
+                                                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500"
+                                                defaultValue={gyms.find(g => g.id === myGymId)?.location || ''}
+                                                onBlur={async (e) => {
+                                                    const location = e.target.value.trim();
+                                                    try {
+                                                        await updateDoc(doc(db, 'gyms', myGymId), {
+                                                            location: location,
+                                                        });
+                                                    } catch (error) {
+                                                        console.error('Error updating gym location:', error);
+                                                        alert('Failed to update gym location. Please try again.');
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Logo URL */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-zinc-300 mb-2">
+                                                Logo URL
+                                            </label>
+                                            <input
+                                                type="url"
+                                                placeholder="https://example.com/logo.png"
+                                                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500"
+                                                defaultValue={gyms.find(g => g.id === myGymId)?.logoUrl || ''}
+                                                onBlur={async (e) => {
+                                                    const logoUrl = e.target.value.trim();
+                                                    try {
+                                                        await updateDoc(doc(db, 'gyms', myGymId), {
+                                                            logoUrl: logoUrl,
+                                                        });
+                                                    } catch (error) {
+                                                        console.error('Error updating gym logo:', error);
+                                                        alert('Failed to update gym logo. Please try again.');
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Website URL */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-zinc-300 mb-2">
+                                                Website URL
+                                            </label>
+                                            <input
+                                                type="url"
+                                                placeholder="https://www.example.com"
+                                                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500"
+                                                defaultValue={gyms.find(g => g.id === myGymId)?.websiteUrl || ''}
+                                                onBlur={async (e) => {
+                                                    const websiteUrl = e.target.value.trim();
+                                                    try {
+                                                        await updateDoc(doc(db, 'gyms', myGymId), {
+                                                            websiteUrl: websiteUrl,
+                                                        });
+                                                    } catch (error) {
+                                                        console.error('Error updating gym website:', error);
+                                                        alert('Failed to update gym website. Please try again.');
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
@@ -1406,6 +1548,23 @@ export default function App() {
                     </button>
                 </div>
             </Modal>
+
+            {/* Footer */}
+            <footer className="fixed bottom-0 left-0 right-0 bg-zinc-950/90 backdrop-blur-sm border-t border-zinc-800 py-3 z-10">
+                <div className="max-w-6xl mx-auto px-4">
+                    <p className="text-center text-xs text-zinc-500">
+                        Built with ❤️ by{' '}
+                        <a
+                            href="https://www.linkedin.com/in/david-robson-3a964018/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gold-500 hover:text-gold-400 transition-colors"
+                        >
+                            David Robson
+                        </a>
+                    </p>
+                </div>
+            </footer>
 
         </div>
     );
