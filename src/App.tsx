@@ -1306,6 +1306,100 @@ export default function App() {
                 </form>
             </Modal>
 
+            {/* Filter Popout Modal */}
+            <Modal
+                isOpen={isFilterPopoutOpen}
+                onClose={() => setIsFilterPopoutOpen(false)}
+                title="Filters"
+            >
+                <div className="space-y-4">
+                    {/* Search */}
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
+                            Search Athletes
+                        </label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500"/>
+                            <input
+                                type="text"
+                                placeholder="Search by name..."
+                                value={searchTerm}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                                className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-lg pl-10 pr-3 py-2 focus:outline-none focus:border-gold-500 transition-colors"
+                            />
+                            {searchTerm && (
+                                <button
+                                    onClick={() => setSearchTerm('')}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                                >
+                                    <X size={16}/>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Division */}
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
+                            Division
+                        </label>
+                        <select
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-gold-500"
+                            value={filterDivision}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterDivision(e.target.value as DivisionFilter)}
+                        >
+                            <option value="all">All Divisions</option>
+                            <option value="Rx">Rx</option>
+                            <option value="Scaled">Scaled</option>
+                            <option value="Foundations">Foundations</option>
+                        </select>
+                    </div>
+
+                    {/* Gender */}
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
+                            Gender
+                        </label>
+                        <select
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-gold-500"
+                            value={filterGender}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterGender(e.target.value as GenderFilter)}
+                        >
+                            <option value="all">All Genders</option>
+                            <option value="M">Male</option>
+                            <option value="F">Female</option>
+                        </select>
+                    </div>
+
+                    {/* Age Group */}
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
+                            Age Group
+                        </label>
+                        <select
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-gold-500"
+                            value={filterAgeGroup}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterAgeGroup(e.target.value as AgeGroupFilter)}
+                        >
+                            {AGE_GROUPS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+                        </select>
+                    </div>
+
+                    {/* Clear All Button */}
+                    <button
+                        onClick={() => {
+                            setSearchTerm('');
+                            setFilterDivision('all');
+                            setFilterGender('all');
+                            setFilterAgeGroup('all');
+                        }}
+                        className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium py-2 rounded-lg transition-colors"
+                    >
+                        Clear All Filters
+                    </button>
+                </div>
+            </Modal>
+
         </div>
     );
 }
