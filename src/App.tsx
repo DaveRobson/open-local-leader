@@ -875,7 +875,7 @@ export default function App() {
                                             </label>
                                             <input
                                                 type="text"
-                                                placeholder="e.g., CrossFit Central"
+                                                placeholder="e.g., CrossFit London"
                                                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500"
                                                 value={gymProfileForm.name}
                                                 onChange={(e) => setGymProfileForm({...gymProfileForm, name: e.target.value})}
@@ -889,7 +889,7 @@ export default function App() {
                                             </label>
                                             <input
                                                 type="text"
-                                                placeholder="e.g., Austin, TX"
+                                                placeholder="e.g., London, UK"
                                                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500"
                                                 value={gymProfileForm.location}
                                                 onChange={(e) => setGymProfileForm({...gymProfileForm, location: e.target.value})}

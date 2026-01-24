@@ -111,7 +111,7 @@ const WorkoutConfigModal: FC<WorkoutConfigModalProps> = ({ isOpen, onClose, work
 
                 <Input
                     label="Unit Label"
-                    placeholder="e.g., reps, lbs, kg"
+                    placeholder="e.g., reps, kg, lbs"
                     value={config.unit || ''}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                         handleConfigChange(workoutId, 'unit', e.target.value)
