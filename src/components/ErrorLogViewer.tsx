@@ -70,11 +70,11 @@ const ErrorLogViewer: FC<ErrorLogViewerProps> = ({ athletes }) => {
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                 <h3 className="text-sm font-bold text-white">
                     Error Logs ({logs.length})
                 </h3>
-                <div className="relative w-64">
+                <div className="relative w-full sm:w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
                     <input
                         type="text"

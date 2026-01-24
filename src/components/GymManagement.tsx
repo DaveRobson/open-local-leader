@@ -88,14 +88,14 @@ const GymManagement: FC<GymManagementProps> = ({ gyms, athletes }) => {
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                 <h3 className="text-sm font-bold text-white">All Gyms ({gyms.length})</h3>
                 <input
                     type="text"
                     placeholder="Search gyms..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3 py-2 focus:outline-none focus:border-purple-500 w-48"
+                    className="bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3 py-2 focus:outline-none focus:border-purple-500 w-full sm:w-48"
                 />
             </div>
 

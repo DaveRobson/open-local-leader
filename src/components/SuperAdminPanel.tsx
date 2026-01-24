@@ -44,19 +44,20 @@ const SuperAdminPanel: FC<SuperAdminPanelProps> = ({
                 </div>
             </div>
 
-            <div className="flex gap-2 border-b border-zinc-800 pb-2">
+            <div className="flex gap-2 border-b border-zinc-800 pb-2 overflow-x-auto no-scrollbar">
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                             activeTab === tab.id
                                 ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
                                 : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
                         }`}
                     >
-                        <tab.icon size={16} />
-                        {tab.label}
+                        <tab.icon size={16} className="flex-shrink-0" />
+                        <span className="hidden sm:inline">{tab.label}</span>
+                        <span className="sm:hidden text-xs">{tab.id === 'workouts' ? 'Config' : tab.id === 'gyms' ? 'Gyms' : tab.id === 'users' ? 'Users' : 'Errors'}</span>
                     </button>
                 ))}
             </div>

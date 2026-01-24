@@ -59,19 +59,19 @@ const UserManagement: FC<UserManagementProps> = ({ athletes, gyms }) => {
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                 <h3 className="text-sm font-bold text-white">All Users ({athletes.length})</h3>
                 <input
                     type="text"
                     placeholder="Search users..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3 py-2 focus:outline-none focus:border-purple-500 w-48"
+                    className="bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg px-3 py-2 focus:outline-none focus:border-purple-500 w-full sm:w-48"
                 />
             </div>
 
             <div className="bg-zinc-900/50 rounded-xl border border-zinc-800 overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto -mx-4 sm:mx-0">
                     <table className="min-w-full divide-y divide-zinc-800">
                         <thead className="bg-zinc-950/50">
                         <tr>
