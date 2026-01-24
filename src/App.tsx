@@ -612,6 +612,11 @@ export default function App() {
                                 <h2 className="text-lg font-black uppercase tracking-tighter text-white leading-none">
                                     {filterGym ? gyms.find(g => g.id === filterGym)?.name : 'All Gyms'}
                                 </h2>
+                                {filterGym && gyms.find(g => g.id === filterGym)?.location && (
+                                    <p className="text-xs text-zinc-500 mt-0.5">
+                                        {gyms.find(g => g.id === filterGym)?.location}
+                                    </p>
+                                )}
                                 <p className="text-xs text-zinc-400 mt-1">
                                     {displayedAthletes.length} Athletes
                                     {filterGym && gyms.find(g => g.id === filterGym)?.charities?.length
