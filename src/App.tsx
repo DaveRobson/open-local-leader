@@ -54,6 +54,20 @@ export default function App() {
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [activeTab, setActiveTab] = useState<ActiveTab>('leaderboard');
 
+    // Temporary filter states for the modal
+    const [tempSearchTerm, setTempSearchTerm] = useState<string>('');
+    const [tempFilterDivision, setTempFilterDivision] = useState<DivisionFilter>('all');
+    const [tempFilterGender, setTempFilterGender] = useState<GenderFilter>('all');
+    const [tempFilterAgeGroup, setTempFilterAgeGroup] = useState<AgeGroupFilter>('all');
+
+    // Gym profile form states
+    const [gymProfileForm, setGymProfileForm] = useState({
+        name: '',
+        location: '',
+        logoUrl: '',
+        websiteUrl: ''
+    });
+
     const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
     const [isScoreModalOpen, setIsScoreModalOpen] = useState<boolean>(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
@@ -121,6 +135,31 @@ export default function App() {
 
         openProfile();
     }, [user, profileExists, loadingProfile, viewState]);
+
+    // Sync temp filter states when modal opens
+    useEffect(() => {
+        if (isFilterPopoutOpen) {
+            setTempSearchTerm(searchTerm);
+            setTempFilterDivision(filterDivision);
+            setTempFilterGender(filterGender);
+            setTempFilterAgeGroup(filterAgeGroup);
+        }
+    }, [isFilterPopoutOpen, searchTerm, filterDivision, filterGender, filterAgeGroup]);
+
+    // Initialize gym profile form when gym data loads
+    useEffect(() => {
+        if (myGymId && gyms.length > 0) {
+            const gym = gyms.find(g => g.id === myGymId);
+            if (gym) {
+                setGymProfileForm({
+                    name: gym.name || '',
+                    location: gym.location || '',
+                    logoUrl: gym.logoUrl || '',
+                    websiteUrl: gym.websiteUrl || ''
+                });
+            }
+        }
+    }, [myGymId, gyms]);
 
     const rankedAthletes = useMemo(() => {
         return calculateRankings(athletes, searchTerm, filterDivision, filterGender, filterAgeGroup, workoutConfigs);
@@ -808,9 +847,9 @@ export default function App() {
                                         <div className="lg:col-span-2">
                                             <div className="flex items-center gap-4">
                                                 <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
-                                                    {gyms.find(g => g.id === myGymId)?.logoUrl ? (
+                                                    {gymProfileForm.logoUrl ? (
                                                         <img
-                                                            src={gyms.find(g => g.id === myGymId)?.logoUrl}
+                                                            src={gymProfileForm.logoUrl}
                                                             alt="Gym Logo"
                                                             className="w-20 h-20 object-cover rounded"
                                                         />
@@ -838,23 +877,8 @@ export default function App() {
                                                 type="text"
                                                 placeholder="e.g., CrossFit Central"
                                                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500"
-                                                defaultValue={gyms.find(g => g.id === myGymId)?.name || ''}
-                                                onBlur={async (e) => {
-                                                    const name = e.target.value.trim();
-                                                    if (!name) {
-                                                        alert('Gym name is required');
-                                                        e.target.value = gyms.find(g => g.id === myGymId)?.name || '';
-                                                        return;
-                                                    }
-                                                    try {
-                                                        await updateDoc(doc(db, 'gyms', myGymId), {
-                                                            name: name,
-                                                        });
-                                                    } catch (error) {
-                                                        console.error('Error updating gym name:', error);
-                                                        alert('Failed to update gym name. Please try again.');
-                                                    }
-                                                }}
+                                                value={gymProfileForm.name}
+                                                onChange={(e) => setGymProfileForm({...gymProfileForm, name: e.target.value})}
                                             />
                                         </div>
 
@@ -867,18 +891,8 @@ export default function App() {
                                                 type="text"
                                                 placeholder="e.g., Austin, TX"
                                                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500"
-                                                defaultValue={gyms.find(g => g.id === myGymId)?.location || ''}
-                                                onBlur={async (e) => {
-                                                    const location = e.target.value.trim();
-                                                    try {
-                                                        await updateDoc(doc(db, 'gyms', myGymId), {
-                                                            location: location,
-                                                        });
-                                                    } catch (error) {
-                                                        console.error('Error updating gym location:', error);
-                                                        alert('Failed to update gym location. Please try again.');
-                                                    }
-                                                }}
+                                                value={gymProfileForm.location}
+                                                onChange={(e) => setGymProfileForm({...gymProfileForm, location: e.target.value})}
                                             />
                                         </div>
 
@@ -891,18 +905,8 @@ export default function App() {
                                                 type="url"
                                                 placeholder="https://example.com/logo.png"
                                                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500"
-                                                defaultValue={gyms.find(g => g.id === myGymId)?.logoUrl || ''}
-                                                onBlur={async (e) => {
-                                                    const logoUrl = e.target.value.trim();
-                                                    try {
-                                                        await updateDoc(doc(db, 'gyms', myGymId), {
-                                                            logoUrl: logoUrl,
-                                                        });
-                                                    } catch (error) {
-                                                        console.error('Error updating gym logo:', error);
-                                                        alert('Failed to update gym logo. Please try again.');
-                                                    }
-                                                }}
+                                                value={gymProfileForm.logoUrl}
+                                                onChange={(e) => setGymProfileForm({...gymProfileForm, logoUrl: e.target.value})}
                                             />
                                         </div>
 
@@ -915,19 +919,36 @@ export default function App() {
                                                 type="url"
                                                 placeholder="https://www.example.com"
                                                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500"
-                                                defaultValue={gyms.find(g => g.id === myGymId)?.websiteUrl || ''}
-                                                onBlur={async (e) => {
-                                                    const websiteUrl = e.target.value.trim();
+                                                value={gymProfileForm.websiteUrl}
+                                                onChange={(e) => setGymProfileForm({...gymProfileForm, websiteUrl: e.target.value})}
+                                            />
+                                        </div>
+
+                                        {/* Save Button */}
+                                        <div className="lg:col-span-2">
+                                            <button
+                                                onClick={async () => {
+                                                    if (!gymProfileForm.name.trim()) {
+                                                        alert('Gym name is required');
+                                                        return;
+                                                    }
                                                     try {
                                                         await updateDoc(doc(db, 'gyms', myGymId), {
-                                                            websiteUrl: websiteUrl,
+                                                            name: gymProfileForm.name.trim(),
+                                                            location: gymProfileForm.location.trim(),
+                                                            logoUrl: gymProfileForm.logoUrl.trim(),
+                                                            websiteUrl: gymProfileForm.websiteUrl.trim(),
                                                         });
+                                                        alert('Gym profile updated successfully!');
                                                     } catch (error) {
-                                                        console.error('Error updating gym website:', error);
-                                                        alert('Failed to update gym website. Please try again.');
+                                                        console.error('Error updating gym profile:', error);
+                                                        alert('Failed to update gym profile. Please try again.');
                                                     }
                                                 }}
-                                            />
+                                                className="w-full bg-gold-500 hover:bg-gold-600 text-black font-bold py-3 rounded-lg transition-colors"
+                                            >
+                                                Save Gym Profile
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -1477,13 +1498,13 @@ export default function App() {
                             <input
                                 type="text"
                                 placeholder="Search by name..."
-                                value={searchTerm}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                                value={tempSearchTerm}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setTempSearchTerm(e.target.value)}
                                 className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-lg pl-10 pr-3 py-2 focus:outline-none focus:border-gold-500 transition-colors"
                             />
-                            {searchTerm && (
+                            {tempSearchTerm && (
                                 <button
-                                    onClick={() => setSearchTerm('')}
+                                    onClick={() => setTempSearchTerm('')}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
                                 >
                                     <X size={16}/>
@@ -1499,8 +1520,8 @@ export default function App() {
                         </label>
                         <select
                             className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-gold-500"
-                            value={filterDivision}
-                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterDivision(e.target.value as DivisionFilter)}
+                            value={tempFilterDivision}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setTempFilterDivision(e.target.value as DivisionFilter)}
                         >
                             <option value="all">All Divisions</option>
                             <option value="Rx">Rx</option>
@@ -1516,8 +1537,8 @@ export default function App() {
                         </label>
                         <select
                             className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-gold-500"
-                            value={filterGender}
-                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterGender(e.target.value as GenderFilter)}
+                            value={tempFilterGender}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setTempFilterGender(e.target.value as GenderFilter)}
                         >
                             <option value="all">All Genders</option>
                             <option value="M">Male</option>
@@ -1532,25 +1553,39 @@ export default function App() {
                         </label>
                         <select
                             className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-gold-500"
-                            value={filterAgeGroup}
-                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterAgeGroup(e.target.value as AgeGroupFilter)}
+                            value={tempFilterAgeGroup}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setTempFilterAgeGroup(e.target.value as AgeGroupFilter)}
                         >
                             {AGE_GROUPS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
                         </select>
                     </div>
 
-                    {/* Clear All Button */}
-                    <button
-                        onClick={() => {
-                            setSearchTerm('');
-                            setFilterDivision('all');
-                            setFilterGender('all');
-                            setFilterAgeGroup('all');
-                        }}
-                        className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium py-2 rounded-lg transition-colors"
-                    >
-                        Clear All Filters
-                    </button>
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            onClick={() => {
+                                setTempSearchTerm('');
+                                setTempFilterDivision('all');
+                                setTempFilterGender('all');
+                                setTempFilterAgeGroup('all');
+                            }}
+                            className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium py-2 rounded-lg transition-colors"
+                        >
+                            Clear All
+                        </button>
+                        <button
+                            onClick={() => {
+                                setSearchTerm(tempSearchTerm);
+                                setFilterDivision(tempFilterDivision);
+                                setFilterGender(tempFilterGender);
+                                setFilterAgeGroup(tempFilterAgeGroup);
+                                setIsFilterPopoutOpen(false);
+                            }}
+                            className="flex-1 bg-gold-500 hover:bg-gold-600 text-black font-bold py-2 rounded-lg transition-colors"
+                        >
+                            Apply Filters
+                        </button>
+                    </div>
                 </div>
             </Modal>
 
