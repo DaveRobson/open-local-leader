@@ -128,20 +128,28 @@ export default function App() {
             return rankedAthletes;
         }
 
-        // For workout-specific tabs, re-sort the list based on that workout's score and type
+        // For workout-specific tabs, sort by: has score, then division, then score within division
         const workoutKey = activeTab as WorkoutId;
         const config = workoutConfigs[workoutKey];
+        const divisionOrder = { 'Rx': 0, 'Scaled': 1, 'Foundations': 2 };
 
         return [...rankedAthletes].sort((a, b) => {
             const scoreA = a[workoutKey] || 0;
             const scoreB = b[workoutKey] || 0;
 
-            // Athletes with no score go to the bottom
+            // Athletes with no score always go to the bottom (regardless of division)
             if (scoreA === 0 && scoreB > 0) return 1;
             if (scoreB === 0 && scoreA > 0) return -1;
-            if (scoreA === 0 && scoreB === 0) return 0;
+            if (scoreA === 0 && scoreB === 0) {
+                // Both have no score - sort by division
+                return divisionOrder[a.division] - divisionOrder[b.division];
+            }
 
-            // Sort based on score type
+            // Both have scores - sort by division first
+            const divisionDiff = divisionOrder[a.division] - divisionOrder[b.division];
+            if (divisionDiff !== 0) return divisionDiff;
+
+            // Within same division, sort by score type
             if (config?.scoreType === 'time') {
                 return scoreA - scoreB; // Lower time is better
             } else if (config?.scoreType === 'time_cap_reps') {
