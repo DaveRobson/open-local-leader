@@ -7,7 +7,7 @@ import {
     signOut,
 } from 'firebase/auth';
 import {deleteDoc, doc, serverTimestamp, setDoc, updateDoc} from 'firebase/firestore';
-import {ChevronRight, Filter, LogOut, MapPin, Plus, Search, ShieldCheck, Trash2, Trophy, X} from 'lucide-react';
+import {ChevronRight, Filter, Globe, LogOut, MapPin, Plus, Search, ShieldCheck, Trash2, Trophy, X} from 'lucide-react';
 
 import {auth, db} from './config/firebase';
 import {
@@ -59,6 +59,7 @@ export default function App() {
     const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
     const [isCreateGymModalOpen, setIsCreateGymModalOpen] = useState<boolean>(false);
     const [isSelectGymModalOpen, setIsSelectGymModalOpen] = useState<boolean>(false);
+    const [isFilterPopoutOpen, setIsFilterPopoutOpen] = useState<boolean>(false);
     const [selectedGymId, setSelectedGymId] = useState<string>('');
     const [editingAthlete, setEditingAthlete] = useState<AthleteWithRank | null>(null);
 
@@ -551,54 +552,16 @@ export default function App() {
 
             <nav className="sticky top-0 z-30 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800">
                 <div className="max-w-6xl mx-auto px-4 py-3">
+                    {/* Top row: Gym selector on left, Log Score and Sign Out on right */}
                     <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                            {userAthlete && (
-                                <button
-                                    onClick={() => openScoreModal(userAthlete)}
-                                    className="p-2 px-3 text-xs bg-gold-600 hover:bg-gold-500 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors"
-                                >
-                                    <Plus size={14}/> Log Score
-                                </button>
-                            )}
-                            <button onClick={() => signOut(auth)}
-                                    className="p-2 text-zinc-500 hover:text-red-500 transition-colors bg-zinc-900/50 rounded-lg hover:bg-zinc-800"
-                                    title="Sign Out">
-                                <LogOut size={14}/>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 items-center">
-                        <div className="relative flex-1 min-w-[140px]">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500"/>
-                            <input
-                                type="text"
-                                placeholder="Search Athletes..."
-                                value={searchTerm}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                                className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-gold-500 transition-colors"
-                            />
-                            {searchTerm && (
-                                <button
-                                    onClick={() => setSearchTerm('')}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
-                                >
-                                    <X size={12}/>
-                                </button>
-                            )}
-                        </div>
-
                         <select
                             className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-gold-500"
                             value={filterGym}
                             onChange={(e: ChangeEvent<HTMLSelectElement>) => {
                                 const gymId = e.target.value;
                                 if (gymId) {
-                                    // Redirect to the specific gym's URL
                                     window.location.href = `/?gymId=${gymId}`;
                                 } else {
-                                    // Redirect to the global view
                                     window.location.href = '/';
                                 }
                             }}
@@ -608,62 +571,50 @@ export default function App() {
                                 <option key={gym.id} value={gym.id}>{gym.name}</option>
                             ))}
                         </select>
-                        <select
-                            className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-gold-500"
-                            value={filterDivision}
-                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterDivision(e.target.value as DivisionFilter)}
-                        >
-                            <option value="all">All Divisions</option>
-                            <option value="Rx">Rx</option>
-                            <option value="Scaled">Scaled</option>
-                            <option value="Foundations">Foundations</option>
-                        </select>
 
-                        <select
-                            className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-gold-500"
-                            value={filterGender}
-                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterGender(e.target.value as GenderFilter)}
-                        >
-                            <option value="all">All Genders</option>
-                            <option value="M">Male</option>
-                            <option value="F">Female</option>
-                        </select>
-
-                        <select
-                            className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-gold-500"
-                            value={filterAgeGroup}
-                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setFilterAgeGroup(e.target.value as AgeGroupFilter)}
-                        >
-                            {AGE_GROUPS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
-                        </select>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => userAthlete ? openScoreModal(userAthlete) : setIsProfileModalOpen(true)}
+                                className="p-2 px-3 text-xs bg-gold-600 hover:bg-gold-500 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors"
+                            >
+                                <Plus size={14}/> Log Score
+                            </button>
+                            <button onClick={() => signOut(auth)}
+                                    className="p-2 text-zinc-500 hover:text-red-500 transition-colors bg-zinc-900/50 rounded-lg hover:bg-zinc-800"
+                                    title="Sign Out">
+                                <LogOut size={14}/>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                {/* Gym Profile Section - only show when viewing specific gym */}
-                {filterGym && (
-                    <div className="max-w-6xl mx-auto px-4 py-6 border-b border-zinc-800">
-                        <div className="flex items-center gap-4">
-                            {/* Gym Logo/Icon */}
-                            <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
-                                {gyms.find(g => g.id === filterGym)?.logoUrl ? (
+                {/* Gym Profile Section - always show, either specific gym or All Gyms */}
+                <div className="bg-zinc-950 border-b border-zinc-800">
+                    <div className="max-w-6xl mx-auto px-4 py-3">
+                        <div className="flex items-center gap-3">
+                            {/* Gym Logo/Icon - smaller */}
+                            <div className="bg-zinc-900 p-2 rounded-lg border border-zinc-800">
+                                {filterGym && gyms.find(g => g.id === filterGym)?.logoUrl ? (
                                     <img
                                         src={gyms.find(g => g.id === filterGym)?.logoUrl}
                                         alt="Gym Logo"
-                                        className="w-16 h-16 object-cover rounded-lg"
+                                        className="w-10 h-10 object-cover rounded"
                                     />
+                                ) : filterGym ? (
+                                    <MapPin className="w-10 h-10 text-gold-500"/>
                                 ) : (
-                                    <MapPin className="w-16 h-16 text-gold-500"/>
+                                    <Globe className="w-10 h-10 text-blue-500"/>
                                 )}
                             </div>
 
                             {/* Gym Info */}
                             <div className="flex-1">
-                                <h2 className="text-2xl font-black uppercase tracking-tighter text-white">
-                                    {gyms.find(g => g.id === filterGym)?.name}
+                                <h2 className="text-lg font-black uppercase tracking-tighter text-white leading-none">
+                                    {filterGym ? gyms.find(g => g.id === filterGym)?.name : 'All Gyms'}
                                 </h2>
-                                <p className="text-sm text-zinc-400 mt-1">
+                                <p className="text-xs text-zinc-400 mt-1">
                                     {displayedAthletes.length} Athletes
-                                    {gyms.find(g => g.id === filterGym)?.charities?.length
+                                    {filterGym && gyms.find(g => g.id === filterGym)?.charities?.length
                                         ? ` • ${gyms.find(g => g.id === filterGym)?.charities?.length} Partner Charities`
                                         : ''
                                     }
@@ -671,47 +622,101 @@ export default function App() {
                             </div>
 
                             {/* Quick Admin Access (if admin) */}
-                            {isAdmin && (
+                            {isAdmin && filterGym && (
                                 <button
                                     onClick={() => setActiveTab('admin')}
-                                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+                                    className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-medium transition-colors"
                                 >
                                     Manage Gym
                                 </button>
                             )}
                         </div>
                     </div>
-                )}
+                </div>
 
-                <div
-                    className="max-w-6xl mx-auto px-4 flex overflow-x-auto no-scrollbar gap-6 border-b border-zinc-800/50 pt-2">
-                    {[
-                        {id: 'leaderboard', label: 'Overall', published: true},
-                        // Only show workout tabs if published (or if super admin)
-                        ...(workoutConfigs.w1.published || isSuperAdmin ? [{id: 'w1', label: workoutConfigs.w1.name, published: workoutConfigs.w1.published}] : []),
-                        ...(workoutConfigs.w2.published || isSuperAdmin ? [{id: 'w2', label: workoutConfigs.w2.name, published: workoutConfigs.w2.published}] : []),
-                        ...(workoutConfigs.w3.published || isSuperAdmin ? [{id: 'w3', label: workoutConfigs.w3.name, published: workoutConfigs.w3.published}] : []),
-                        ...(filterGym && gyms.find(g => g.id === filterGym)?.charities !== undefined
-                            ? [{id: 'charities', label: 'Charities', published: true}]
-                            : []),
-                        ...(isAdmin ? [{id: 'admin', label: 'Admin', published: true}] : []),
-                        ...(isSuperAdmin ? [{id: 'superAdmin', label: 'Super Admin', published: true}] : []),
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as ActiveTab)}
-                            className={`
-                                py-3 text-sm font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors
-                                ${activeTab === tab.id
-                                ? (tab.id === 'superAdmin' ? 'border-purple-500 text-white' : 'border-gold-500 text-white')
-                                : 'border-transparent text-zinc-500 hover:text-zinc-300'}
-                                ${!tab.published && isSuperAdmin ? 'opacity-50' : ''}
-                              `}
-                            title={!tab.published ? 'Not published yet' : ''}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
+                {/* Tabs and Filter Pills Row */}
+                <div className="max-w-6xl mx-auto px-4 border-b border-zinc-800/50 relative">
+                    <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pr-12">
+                        {/* Tabs */}
+                        <div className="flex gap-6 flex-shrink-0">
+                            {[
+                                {id: 'leaderboard', label: 'Overall', published: true},
+                                // Only show workout tabs if published (or if super admin)
+                                ...(workoutConfigs.w1.published || isSuperAdmin ? [{id: 'w1', label: workoutConfigs.w1.name, published: workoutConfigs.w1.published}] : []),
+                                ...(workoutConfigs.w2.published || isSuperAdmin ? [{id: 'w2', label: workoutConfigs.w2.name, published: workoutConfigs.w2.published}] : []),
+                                ...(workoutConfigs.w3.published || isSuperAdmin ? [{id: 'w3', label: workoutConfigs.w3.name, published: workoutConfigs.w3.published}] : []),
+                                ...(filterGym && gyms.find(g => g.id === filterGym)?.charities !== undefined
+                                    ? [{id: 'charities', label: 'Charities', published: true}]
+                                    : []),
+                                ...(isAdmin ? [{id: 'admin', label: 'Admin', published: true}] : []),
+                                ...(isSuperAdmin ? [{id: 'superAdmin', label: 'Super Admin', published: true}] : []),
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id as ActiveTab)}
+                                    className={`
+                                        py-3 text-sm font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors
+                                        ${activeTab === tab.id
+                                        ? (tab.id === 'superAdmin' ? 'border-purple-500 text-white' : 'border-gold-500 text-white')
+                                        : 'border-transparent text-zinc-500 hover:text-zinc-300'}
+                                        ${!tab.published && isSuperAdmin ? 'opacity-50' : ''}
+                                      `}
+                                    title={!tab.published ? 'Not published yet' : ''}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Filter Pills */}
+                        <div className="flex gap-2 items-center flex-shrink-0">
+                            {filterDivision !== 'all' && (
+                                <button
+                                    onClick={() => setIsFilterPopoutOpen(true)}
+                                    className="px-3 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 rounded-full text-xs font-medium hover:bg-gold-500/30 transition-colors flex items-center gap-1.5"
+                                >
+                                    {filterDivision}
+                                    <X size={12} onClick={(e) => { e.stopPropagation(); setFilterDivision('all'); }} />
+                                </button>
+                            )}
+                            {filterGender !== 'all' && (
+                                <button
+                                    onClick={() => setIsFilterPopoutOpen(true)}
+                                    className="px-3 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 rounded-full text-xs font-medium hover:bg-gold-500/30 transition-colors flex items-center gap-1.5"
+                                >
+                                    {filterGender === 'M' ? 'Male' : 'Female'}
+                                    <X size={12} onClick={(e) => { e.stopPropagation(); setFilterGender('all'); }} />
+                                </button>
+                            )}
+                            {filterAgeGroup !== 'all' && (
+                                <button
+                                    onClick={() => setIsFilterPopoutOpen(true)}
+                                    className="px-3 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 rounded-full text-xs font-medium hover:bg-gold-500/30 transition-colors flex items-center gap-1.5"
+                                >
+                                    {AGE_GROUPS.find(g => g.value === filterAgeGroup)?.label}
+                                    <X size={12} onClick={(e) => { e.stopPropagation(); setFilterAgeGroup('all'); }} />
+                                </button>
+                            )}
+                            {searchTerm && (
+                                <button
+                                    onClick={() => setIsFilterPopoutOpen(true)}
+                                    className="px-3 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 rounded-full text-xs font-medium hover:bg-gold-500/30 transition-colors flex items-center gap-1.5"
+                                >
+                                    "{searchTerm}"
+                                    <X size={12} onClick={(e) => { e.stopPropagation(); setSearchTerm(''); }} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Sticky Filter Button */}
+                    <button
+                        onClick={() => setIsFilterPopoutOpen(!isFilterPopoutOpen)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors"
+                        title="Filters"
+                    >
+                        <Filter size={16} className="text-zinc-400" />
+                    </button>
                 </div>
             </nav>
 
