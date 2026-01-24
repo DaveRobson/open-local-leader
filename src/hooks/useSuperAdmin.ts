@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { type User } from 'firebase/auth';
 import { db } from '../config/firebase';
+import { logError } from '../utils/logger';
 
 export function useSuperAdmin(user: User | null | undefined) {
     const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
@@ -25,7 +26,7 @@ export function useSuperAdmin(user: User | null | undefined) {
             }
             setLoading(false);
         }, (error) => {
-            console.error('Error checking super admin status:', error);
+            logError('Error checking super admin status', error);
             setIsSuperAdmin(false);
             setLoading(false);
         });

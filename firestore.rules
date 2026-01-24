@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if user is a super admin
+    function isSuperAdmin() {
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/cf_leaderboard_athletes/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/cf_leaderboard_athletes/$(request.auth.uid)).data.superAdmin == true;
+    }
+
+    // Error logs collection
+    match /error_logs/{logId} {
+      // Allow anyone to create logs (needed for unauthenticated auth errors)
+      allow create: if true;
+
+      // Only super admins can read logs
+      allow read: if isSuperAdmin();
+
+      // No one can update or delete logs
+      allow update, delete: if false;
+    }
+
+    // Athletes collection
+    match /cf_leaderboard_athletes/{userId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (
+        request.auth.uid == userId ||
+        isSuperAdmin() ||
+        // Allow gym admins to update athletes in their gym
+        (exists(/databases/$(database)/documents/gyms/$(resource.data.gymId)) &&
+         request.auth.uid in get(/databases/$(database)/documents/gyms/$(resource.data.gymId)).data.admins)
+      );
+      allow delete: if request.auth != null && (
+        isSuperAdmin() ||
+        (exists(/databases/$(database)/documents/gyms/$(resource.data.gymId)) &&
+         request.auth.uid in get(/databases/$(database)/documents/gyms/$(resource.data.gymId)).data.admins)
+      );
+    }
+
+    // Gyms collection
+    match /gyms/{gymId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        isSuperAdmin() ||
+        request.auth.uid in resource.data.admins
+      );
+      allow delete: if request.auth != null && isSuperAdmin();
+    }
+
+    // Workouts configuration
+    match /workouts/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null && isSuperAdmin();
+    }
+  }
+}

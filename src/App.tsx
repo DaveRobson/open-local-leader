@@ -34,6 +34,8 @@ import {useUserProfile} from "./hooks/useUserProfile.ts";
 import {useApp} from "./hooks/useApp.ts";
 import {useWorkoutConfig} from "./hooks/useWorkoutConfig.ts";
 import {formatSecondsToTime} from "./utils/timeFormat.ts";
+import {getAuthErrorMessage, isUserCancelledError} from "./utils/authErrors.ts";
+import {logError} from "./utils/logger.ts";
 
 export default function App() {
     const {user, authLoading} = useAuth();
@@ -192,15 +194,19 @@ export default function App() {
                 lastEditedBy: user?.uid
             });
         } catch (error) {
-            console.error("Error verifying score", error);
+            logError("Error verifying score", error, { athleteId, workout });
         }
     };
 
     const handleLogin = async () => {
+        setAuthError(null);
         try {
             await signInWithPopup(auth, new GoogleAuthProvider());
-        } catch (e) {
-            console.error(e);
+        } catch (error) {
+            if (!isUserCancelledError(error)) {
+                setAuthError(getAuthErrorMessage(error));
+                logError("Google sign-in failed", error);
+            }
         }
     };
 
@@ -214,20 +220,8 @@ export default function App() {
                 await signInWithEmailAndPassword(auth, email, password);
             }
         } catch (error: unknown) {
-            // Map common Firebase error codes to user-friendly messages
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-expect-error
-            switch (error.code) {
-                case 'auth/invalid-email':
-                    setAuthError('Please enter a valid email address.');
-                    break;
-                case 'auth/user-not-found':
-                case 'auth/wrong-password':
-                    setAuthError('Invalid email or password.');
-                    break;
-                default:
-                    setAuthError('An unexpected error occurred. Please try again.');
-            }
+            setAuthError(getAuthErrorMessage(error));
+            logError(`Email ${authMode} failed`, error, { email });
         }
     };
 
@@ -240,7 +234,7 @@ export default function App() {
             setIsSelectGymModalOpen(false);
             enterApp('');
         } catch (error) {
-            console.error("Error creating gym", error);
+            logError("Error setting athlete's gym", error, { userId, gymId });
         }
     };
 
@@ -261,7 +255,7 @@ export default function App() {
             setIsCreateGymModalOpen(false);
             enterApp(newGymId);
         } catch (error) {
-            console.error("Error creating gym", error);
+            logError("Error creating gym", error, { gymName: newGymName, gymId: newGymId });
         }
     };
 
@@ -288,7 +282,7 @@ export default function App() {
             setIsProfileModalOpen(false);
             setIsSelectGymModalOpen(true);
         } catch (error) {
-            console.error("Error adding athlete", error);
+            logError("Error adding athlete", error, { athleteName: newAthlete.name });
         }
     };
 
@@ -319,7 +313,7 @@ export default function App() {
             setIsScoreModalOpen(false);
             setEditingAthlete(null);
         } catch (error) {
-            console.error("Error updating score", error);
+            logError("Error updating score", error, { athleteId: editingAthlete.id });
         }
     };
 
@@ -328,8 +322,8 @@ export default function App() {
         try {
             await deleteDoc(doc(db, 'cf_leaderboard_athletes', id));
             setIsScoreModalOpen(false);
-        } catch (err) {
-            console.error(err);
+        } catch (error) {
+            logError("Error deleting athlete", error, { athleteId: id });
         }
     }
 
@@ -451,20 +445,27 @@ export default function App() {
                             </div>
 
                             <form onSubmit={handleEmailAuth} className="space-y-3">
-                                <Input 
-                                    type="email" 
-                                    placeholder="Email address" 
-                                    value={email} 
-                                    onChange={(e) => setEmail(e.target.value)} 
-                                    required 
+                                <Input
+                                    type="email"
+                                    placeholder="Email address"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
                                 />
-                                <Input 
-                                    type="password" 
-                                    placeholder="Password" 
-                                    value={password} 
-                                    onChange={(e) => setPassword(e.target.value)} 
-                                    required 
-                                />
+                                <div>
+                                    <Input
+                                        type="password"
+                                        placeholder="Password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                    {authMode === 'signup' && (
+                                        <p className="text-zinc-500 text-[10px] mt-1 text-left">
+                                            Password must be at least 6 characters
+                                        </p>
+                                    )}
+                                </div>
                                 {authError && <p className="text-red-500 text-xs text-center">{authError}</p>}
                                 <button type="submit" className="w-full bg-gold-600 hover:bg-gold-500 text-white font-bold py-3 px-4 rounded-xl transition-colors">
                                     {authMode === 'signin' ? 'Sign In' : 'Create Account'}

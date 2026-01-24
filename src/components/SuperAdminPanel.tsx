@@ -1,8 +1,9 @@
 import {type FC, useState} from 'react';
-import {Building2, Settings, Users, Eye, EyeOff} from 'lucide-react';
+import {AlertCircle, Building2, Settings, Users, Eye, EyeOff} from 'lucide-react';
 import WorkoutConfigModal from './WorkoutConfigModal';
 import GymManagement from './GymManagement';
 import UserManagement from './UserManagement';
+import ErrorLogViewer from './ErrorLogViewer';
 import {type Athlete, type WorkoutConfigs} from '../types';
 import {type Gym} from '../hooks/useGyms';
 
@@ -13,7 +14,7 @@ interface SuperAdminPanelProps {
     athletes: Athlete[];
 }
 
-type SuperAdminTab = 'workouts' | 'gyms' | 'users';
+type SuperAdminTab = 'workouts' | 'gyms' | 'users' | 'errors';
 
 const SuperAdminPanel: FC<SuperAdminPanelProps> = ({
     workoutConfigs,
@@ -28,6 +29,7 @@ const SuperAdminPanel: FC<SuperAdminPanelProps> = ({
         { id: 'workouts' as const, label: 'Workout Config', icon: Settings },
         { id: 'gyms' as const, label: 'Gym Management', icon: Building2 },
         { id: 'users' as const, label: 'User Management', icon: Users },
+        { id: 'errors' as const, label: 'Error Logs', icon: AlertCircle },
     ];
 
     return (
@@ -122,6 +124,10 @@ const SuperAdminPanel: FC<SuperAdminPanelProps> = ({
 
             {activeTab === 'users' && (
                 <UserManagement athletes={athletes} gyms={gyms} />
+            )}
+
+            {activeTab === 'errors' && (
+                <ErrorLogViewer athletes={athletes} />
             )}
 
             <WorkoutConfigModal

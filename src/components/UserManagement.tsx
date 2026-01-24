@@ -4,6 +4,7 @@ import { doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { type Athlete } from '../types';
 import { type Gym } from '../hooks/useGyms';
+import { logError } from '../utils/logger';
 
 interface UserManagementProps {
     athletes: Athlete[];
@@ -21,7 +22,7 @@ const UserManagement: FC<UserManagementProps> = ({ athletes, gyms }) => {
             // Note: This doesn't delete the Firebase Auth user, only the profile data.
             // A cloud function would be needed for full user deletion.
         } catch (error) {
-            console.error('Error deleting user:', error);
+            logError('Error deleting user', error, { userId });
         }
     };
 
@@ -47,7 +48,7 @@ const UserManagement: FC<UserManagementProps> = ({ athletes, gyms }) => {
 
             await updateDoc(gymRef, { admins: newAdmins });
         } catch (error) {
-            console.error('Error toggling admin status:', error);
+            logError('Error toggling admin status', error, { athleteId: athlete.id, gymId: gym.id });
         }
     };
 

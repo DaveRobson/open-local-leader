@@ -21,7 +21,8 @@ if (import.meta.env.DEV) {
         connectAuthEmulator(auth, 'http://localhost:9099');
         connectFirestoreEmulator(db, 'localhost', 8080);
     } catch (e) {
-        console.error(e);
+        // Can't use logger here due to circular dependency - firebase must init first
+        console.error('Failed to connect to emulators:', e);
     }
 }
 

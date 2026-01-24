@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { type WorkoutConfigs, type WorkoutConfig, type WorkoutId } from '../types';
+import { logError, logWarn } from '../utils/logger';
 
 // Default workout configs (higher score = better) for backward compatibility
 const defaultWorkoutConfigs: WorkoutConfigs = {
@@ -28,7 +29,7 @@ export function useWorkoutConfig() {
                 });
             } else {
                 // This is the critical fallback for production issues.
-                console.warn(
+                logWarn(
                     'Workout config not found! Falling back to default (all workouts unpublished). ' +
                     'Create a "current" document in the "workouts" collection in Firestore.'
                 );
@@ -36,7 +37,7 @@ export function useWorkoutConfig() {
             }
             setLoading(false);
         }, (error) => {
-            console.error('Error fetching workout config:', error);
+            logError('Error fetching workout config', error);
             setWorkoutConfigs(defaultWorkoutConfigs);
             setLoading(false);
         });
@@ -55,7 +56,7 @@ export function useWorkoutConfig() {
                 [workoutId]: updatedConfig,
             }, { merge: true });
         } catch (error) {
-            console.error('Error updating workout config:', error);
+            logError('Error updating workout config', error, { workoutId });
             throw error;
         }
     };
@@ -66,7 +67,7 @@ export function useWorkoutConfig() {
         try {
             await setDoc(docRef, configs);
         } catch (error) {
-            console.error('Error updating all workout configs:', error);
+            logError('Error updating all workout configs', error);
             throw error;
         }
     };

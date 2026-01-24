@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { logError } from '../utils/logger';
 
 export interface Gym {
     id: string;
@@ -14,14 +15,21 @@ export function useGyms() {
 
     useEffect(() => {
         const collectionRef = collection(db, 'gyms');
-        const unsubscribe = onSnapshot(collectionRef, (snapshot) => {
-            const gymsData = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            } as Gym));
-            setGyms(gymsData);
-            setLoading(false);
-        });
+        const unsubscribe = onSnapshot(
+            collectionRef,
+            (snapshot) => {
+                const gymsData = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                } as Gym));
+                setGyms(gymsData);
+                setLoading(false);
+            },
+            (error) => {
+                logError('Error fetching gyms', error);
+                setLoading(false);
+            }
+        );
 
         return () => unsubscribe();
     }, []);

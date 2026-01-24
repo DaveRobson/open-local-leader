@@ -6,6 +6,7 @@ import Modal from './Modal';
 import Input from './Input';
 import {type Gym} from '../hooks/useGyms';
 import {type Athlete} from '../types';
+import {logError} from '../utils/logger';
 
 interface GymManagementProps {
     gyms: Gym[];
@@ -43,7 +44,7 @@ const GymManagement: FC<GymManagementProps> = ({ gyms, athletes }) => {
             setIsEditModalOpen(false);
             setEditingGym(null);
         } catch (error) {
-            console.error('Error updating gym name:', error);
+            logError('Error updating gym name', error, { gymId: editingGym.id, newName: editName.trim() });
         }
     };
 
@@ -53,7 +54,7 @@ const GymManagement: FC<GymManagementProps> = ({ gyms, athletes }) => {
         try {
             await deleteDoc(doc(db, 'gyms', gymId));
         } catch (error) {
-            console.error('Error deleting gym:', error);
+            logError('Error deleting gym', error, { gymId });
         }
     };
 
@@ -65,7 +66,7 @@ const GymManagement: FC<GymManagementProps> = ({ gyms, athletes }) => {
             await updateDoc(gymRef, { admins: arrayUnion(userId) });
             setSelectedUserId('');
         } catch (error) {
-            console.error('Error adding admin:', error);
+            logError('Error adding admin', error, { gymId: editingGym.id, userId });
         }
     };
 
@@ -76,7 +77,7 @@ const GymManagement: FC<GymManagementProps> = ({ gyms, athletes }) => {
             const gymRef = doc(db, 'gyms', editingGym.id);
             await updateDoc(gymRef, { admins: arrayRemove(userId) });
         } catch (error) {
-            console.error('Error removing admin:', error);
+            logError('Error removing admin', error, { gymId: editingGym.id, userId });
         }
     };
 
