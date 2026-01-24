@@ -106,38 +106,36 @@ export const calculateRankings = (
     const processed: AthleteWithRank[] = athletes.map(a => ({...a, totalPoints: 0, participation: 0}));
 
     // 2. Calculate ranks for each published workout
+    // Rankings are combined across genders - filters allow users to view by gender if needed
     (['w1', 'w2', 'w3'] as const).forEach(w => {
         const config = workoutConfigs[w];
         if (!config.published) return;
 
-        const genders: ('M' | 'F')[] = ['M', 'F'];
-        genders.forEach(gender => {
-            const divisions = {
-                Rx: processed.filter(a => a.division === 'Rx' && a.gender === gender),
-                Scaled: processed.filter(a => a.division === 'Scaled' && a.gender === gender),
-                Foundations: processed.filter(a => a.division === 'Foundations' && a.gender === gender),
-            };
+        const divisions = {
+            Rx: processed.filter(a => a.division === 'Rx'),
+            Scaled: processed.filter(a => a.division === 'Scaled'),
+            Foundations: processed.filter(a => a.division === 'Foundations'),
+        };
 
-            sortByPerformance(divisions.Rx, w, config);
-            sortByPerformance(divisions.Scaled, w, config);
-            sortByPerformance(divisions.Foundations, w, config);
+        sortByPerformance(divisions.Rx, w, config);
+        sortByPerformance(divisions.Scaled, w, config);
+        sortByPerformance(divisions.Foundations, w, config);
 
-            let rankOffset = 0;
-            (['Rx', 'Scaled', 'Foundations'] as const).forEach(div => {
-                const group = divisions[div];
-                let currentRank = rankOffset + 1;
-                for (let i = 0; i < group.length; i++) {
-                    const athlete = group[i];
-                    const prevAthlete = group[i - 1];
-                    if (i > 0 && scoresAreEqual(athlete, prevAthlete, w, config)) {
-                        athlete[`${w}_rank`] = prevAthlete[`${w}_rank`];
-                    } else {
-                        athlete[`${w}_rank`] = currentRank;
-                    }
-                    currentRank++;
+        let rankOffset = 0;
+        (['Rx', 'Scaled', 'Foundations'] as const).forEach(div => {
+            const group = divisions[div];
+            let currentRank = rankOffset + 1;
+            for (let i = 0; i < group.length; i++) {
+                const athlete = group[i];
+                const prevAthlete = group[i - 1];
+                if (i > 0 && scoresAreEqual(athlete, prevAthlete, w, config)) {
+                    athlete[`${w}_rank`] = prevAthlete[`${w}_rank`];
+                } else {
+                    athlete[`${w}_rank`] = currentRank;
                 }
-                rankOffset += group.length;
-            });
+                currentRank++;
+            }
+            rankOffset += group.length;
         });
     });
 
@@ -148,9 +146,10 @@ export const calculateRankings = (
     );
 
     if (liveWorkouts.length > 0) {
+        // Penalty for missing a workout is based on division size + 1
         processed.forEach(a => {
-            const sameGenderCount = processed.filter(p => p.gender === a.gender).length;
-            const missedPenalty = sameGenderCount + 1;
+            const sameDivisionCount = processed.filter(p => p.division === a.division).length;
+            const missedPenalty = sameDivisionCount + 1;
 
             liveWorkouts.forEach(wKey => {
                 const score = getScore(a[wKey]);
