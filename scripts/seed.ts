@@ -41,12 +41,13 @@ const seed = async () => {
   console.log('Super admin created');
 
   // Create Gym with charity partners
-  const gymId = 'CF51';
+  const gymId = 'CFLONDON';
   const gymAdminUid = 'gymadmin';
   const charityTimestamp = admin.firestore.Timestamp.now();
 
   await db.collection('gyms').doc(gymId).set({
-    name: 'CrossFit 51',
+    name: 'CrossFit London',
+    location: 'London, UK',
     admins: [gymAdminUid],
     charities: [
       {
@@ -101,11 +102,11 @@ const seed = async () => {
   // Create Gym Admin
   await admin.auth().createUser({
     uid: gymAdminUid,
-    email: 'admin@cf51.com',
+    email: 'admin@cflondon.co.uk',
     password: 'password',
   });
   await db.collection('cf_leaderboard_athletes').doc(gymAdminUid).set({
-    name: 'Gym Admin',
+    name: 'James Wilson',
     division: 'Rx',
     gender: 'M',
     age: 35,
@@ -126,11 +127,11 @@ const seed = async () => {
   const athlete1Uid = 'athlete1';
   await admin.auth().createUser({
     uid: athlete1Uid,
-    email: 'athlete1@cf51.com',
+    email: 'oliver.davies@cflondon.co.uk',
     password: 'password',
   });
   await db.collection('cf_leaderboard_athletes').doc(athlete1Uid).set({
-    name: 'John Doe',
+    name: 'Oliver Davies',
     division: 'Rx',
     gender: 'M',
     age: 30,
@@ -149,11 +150,11 @@ const seed = async () => {
   const athlete2Uid = 'athlete2';
   await admin.auth().createUser({
     uid: athlete2Uid,
-    email: 'athlete2@cf51.com',
+    email: 'emma.thompson@cflondon.co.uk',
     password: 'password',
   });
   await db.collection('cf_leaderboard_athletes').doc(athlete2Uid).set({
-    name: 'Jane Smith',
+    name: 'Emma Thompson',
     division: 'Scaled',
     gender: 'F',
     age: 28,
@@ -190,7 +191,7 @@ const seed = async () => {
         code: 'permission-denied',
       },
       context: { athleteId: athlete1Uid },
-      url: 'http://localhost:5173/?gymId=CF51',
+      url: 'http://localhost:5173/?gymId=CFLONDON',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       userId: athlete1Uid,
       timestamp: new Date(now.getTime() - 5 * 60 * 1000), // 5 minutes ago
@@ -203,7 +204,7 @@ const seed = async () => {
         message: 'Firebase: Error (auth/wrong-password).',
         code: 'auth/wrong-password',
       },
-      context: { email: 'john.smith@gmail.com' },
+      context: { email: 'james.brown@gmail.co.uk' },
       url: 'http://localhost:5173/',
       userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15',
       userId: null, // Anonymous user trying to log in
@@ -232,7 +233,7 @@ const seed = async () => {
         code: 'permission-denied',
       },
       context: { athleteId: athlete2Uid, workout: 'w1' },
-      url: 'http://localhost:5173/?gymId=CF51',
+      url: 'http://localhost:5173/?gymId=CFLONDON',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       userId: gymAdminUid,
       timestamp: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
@@ -255,8 +256,8 @@ const seed = async () => {
         message: 'Failed to get document because the client is offline.',
         code: 'unavailable',
       },
-      context: { filterGym: 'CF51' },
-      url: 'http://localhost:5173/?gymId=CF51',
+      context: { filterGym: 'CFLONDON' },
+      url: 'http://localhost:5173/?gymId=CFLONDON',
       userAgent: 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36',
       userId: athlete2Uid,
       timestamp: new Date(now.getTime() - 3 * 60 * 60 * 1000), // 3 hours ago
@@ -273,7 +274,7 @@ const seed = async () => {
     at mountIndeterminateComponent (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js:5678:17)`,
       },
       context: { componentStack: '\n    at LeaderboardRow\n    at div\n    at main\n    at App' },
-      url: 'http://localhost:5173/?gymId=CF51',
+      url: 'http://localhost:5173/?gymId=CFLONDON',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       userId: athlete1Uid,
       timestamp: new Date(now.getTime() - 6 * 60 * 60 * 1000), // 6 hours ago
@@ -300,7 +301,7 @@ const seed = async () => {
         message: 'Firebase: Error (auth/email-already-in-use).',
         code: 'auth/email-already-in-use',
       },
-      context: { email: 'existing.user@example.com' },
+      context: { email: 'existing.user@example.co.uk' },
       url: 'http://localhost:5173/',
       userAgent: 'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15',
       userId: null,
@@ -314,7 +315,7 @@ const seed = async () => {
         message: 'Firebase: Password should be at least 6 characters (auth/weak-password).',
         code: 'auth/weak-password',
       },
-      context: { email: 'newbie@crossfit.com' },
+      context: { email: 'newbie@crossfit.co.uk' },
       url: 'http://localhost:5173/',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       userId: null,
@@ -329,7 +330,7 @@ const seed = async () => {
         code: 'permission-denied',
       },
       context: { athleteId: athlete1Uid, gymId: gymId },
-      url: 'http://localhost:5173/?gymId=CF51',
+      url: 'http://localhost:5173/?gymId=CFLONDON',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       userId: superAdminUid,
       timestamp: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), // 2 days ago

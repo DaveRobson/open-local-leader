@@ -773,7 +773,7 @@ export default function App() {
                 </div>
             )}
 
-            <main className="max-w-6xl mx-auto px-4 py-6 pb-24">
+            <main className="max-w-6xl mx-auto px-4 py-6">
 
                 {activeTab !== 'charities' && activeTab !== 'admin' && activeTab !== 'superAdmin' && (
                     <div className="flex justify-between items-end mb-4">
@@ -1590,7 +1590,7 @@ export default function App() {
             </Modal>
 
             {/* Footer */}
-            <footer className="fixed bottom-0 left-0 right-0 bg-zinc-950/90 backdrop-blur-sm border-t border-zinc-800 py-3 z-10">
+            <footer className="mt-12 border-t border-zinc-800 py-6">
                 <div className="max-w-6xl mx-auto px-4">
                     <p className="text-center text-xs text-zinc-500">
                         Built with ❤️ by{' '}
