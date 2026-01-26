@@ -189,27 +189,30 @@ describe('calculateRankings', () => {
     });
 
     describe('Division offset ranking', () => {
-        it('should rank all Scaled athletes below all Rx athletes', () => {
+        it('should rank all Scaled athletes below all Rx athletes by total points', () => {
             const athletes: Athlete[] = [
                 createAthlete({ name: 'Rx-Low', division: 'Rx', w1: 100 }),
                 createAthlete({ name: 'Scaled-High', division: 'Scaled', w1: 300 }),
-                createAthlete({ name: 'Rx-High', division: 'Rx', w1: 200 }),
             ];
 
             const result = calculateRankings(athletes, '', 'all', 'all', 'all', repsConfig);
 
-            const rxHigh = result.find(a => a.name === 'Rx-High');
             const rxLow = result.find(a => a.name === 'Rx-Low');
             const scaledHigh = result.find(a => a.name === 'Scaled-High');
 
-            // Rx athletes ranked 1-2
-            expect(rxHigh?.w1_rank).toBe(1);
-            expect(rxLow?.w1_rank).toBe(2);
-            // Scaled starts at rank 3 (after all 2 Rx athletes)
-            expect(scaledHigh?.w1_rank).toBe(3);
+            // w1_rank should be within their own division
+            expect(rxLow?.w1_rank).toBe(1); // Only one Rx athlete
+            expect(scaledHigh?.w1_rank).toBe(1); // Only one Scaled athlete
+
+            // Overall ranking by total points should reflect division offset
+            expect(result[0].name).toBe('Rx-Low');
+            expect(result[1].name).toBe('Scaled-High');
+
+            // Verify total points reflect the offset (Scaled-High should have higher points than Rx athletes)
+            expect(rxLow?.totalPoints).toBeLessThan(scaledHigh?.totalPoints || 0);
         });
 
-        it('should rank Foundations below Scaled which is below Rx', () => {
+        it('should rank Foundations below Scaled which is below Rx by total points', () => {
             const athletes: Athlete[] = [
                 createAthlete({ name: 'Rx', division: 'Rx', w1: 100 }),
                 createAthlete({ name: 'Scaled', division: 'Scaled', w1: 100 }),
@@ -222,12 +225,22 @@ describe('calculateRankings', () => {
             const scaled = result.find(a => a.name === 'Scaled');
             const foundations = result.find(a => a.name === 'Foundations');
 
+            // w1_rank should be 1 for all as they are 1st in their respective divisions
             expect(rx?.w1_rank).toBe(1);
-            expect(scaled?.w1_rank).toBe(2); // Starts after 1 Rx athlete
-            expect(foundations?.w1_rank).toBe(3); // Starts after 1 Rx + 1 Scaled
+            expect(scaled?.w1_rank).toBe(1);
+            expect(foundations?.w1_rank).toBe(1);
+
+            // Overall ranking by total points should reflect division offset
+            expect(result[0].name).toBe('Rx');
+            expect(result[1].name).toBe('Scaled');
+            expect(result[2].name).toBe('Foundations');
+
+            // Verify total points reflect the offset
+            expect(rx?.totalPoints).toBeLessThan(scaled?.totalPoints || 0);
+            expect(scaled?.totalPoints).toBeLessThan(foundations?.totalPoints || 0);
         });
 
-        it('should handle multiple athletes in each division correctly', () => {
+        it('should handle multiple athletes in each division correctly by total points', () => {
             const athletes: Athlete[] = [
                 createAthlete({ name: 'Rx-1', division: 'Rx', w1: 200 }),
                 createAthlete({ name: 'Rx-2', division: 'Rx', w1: 100 }),
@@ -244,14 +257,23 @@ describe('calculateRankings', () => {
             const scaled2 = result.find(a => a.name === 'Scaled-2');
             const found1 = result.find(a => a.name === 'Found-1');
 
-            // Rx: ranks 1-2
+            // w1_rank within their own division
             expect(rx1?.w1_rank).toBe(1);
             expect(rx2?.w1_rank).toBe(2);
-            // Scaled: ranks 3-4 (after 2 Rx)
-            expect(scaled1?.w1_rank).toBe(3);
-            expect(scaled2?.w1_rank).toBe(4);
-            // Foundations: rank 5 (after 2 Rx + 2 Scaled)
-            expect(found1?.w1_rank).toBe(5);
+            expect(scaled1?.w1_rank).toBe(1);
+            expect(scaled2?.w1_rank).toBe(2);
+            expect(found1?.w1_rank).toBe(1);
+
+            // Overall ranking by total points should reflect division offset
+            expect(result[0].name).toBe('Rx-1');
+            expect(result[1].name).toBe('Rx-2');
+            expect(result[2].name).toBe('Scaled-1');
+            expect(result[3].name).toBe('Scaled-2');
+            expect(result[4].name).toBe('Found-1');
+
+            // Verify total points reflect the offset
+            expect(rx2?.totalPoints).toBeLessThan(scaled1?.totalPoints || 0);
+            expect(scaled2?.totalPoints).toBeLessThan(found1?.totalPoints || 0);
         });
     });
 
@@ -288,7 +310,7 @@ describe('calculateRankings', () => {
     });
 
     describe('Missing score penalty', () => {
-        it('should assign penalty of Total_Participants + 1 for missing scores', () => {
+        it('should assign penalty of Total_Participants_in_Division + 1 for missing scores', () => {
             const athletes: Athlete[] = [
                 createAthlete({ name: 'Complete', w1: 150, w2: 200, w3: 100 }),
                 createAthlete({ name: 'Missing', w1: 150, w2: 0, w3: 100 }), // Missing w2
@@ -299,7 +321,7 @@ describe('calculateRankings', () => {
             const complete = result.find(a => a.name === 'Complete');
             const missing = result.find(a => a.name === 'Missing');
 
-            // Total participants = 2, so penalty = 3
+            // Total participants in Rx division = 2, so penalty = 3
             // Complete: w1_rank=1, w2_rank=1, w3_rank=1, total=3
             // Missing: w1_rank=1 (tied), w2_rank=penalty(3), w3_rank=1 (tied), total=5
             expect(complete?.totalPoints).toBe(3);
@@ -365,8 +387,8 @@ describe('calculateRankings', () => {
         });
     });
 
-    describe('Gender-based ranking', () => {
-        it('should rank men and women separately', () => {
+    describe('Gender ranking (combined within division)', () => {
+        it('should rank men and women together within the same division', () => {
             const athletes: Athlete[] = [
                 createAthlete({ name: 'Male-Low', gender: 'M', w1: 100 }),
                 createAthlete({ name: 'Male-High', gender: 'M', w1: 200 }),
@@ -381,13 +403,17 @@ describe('calculateRankings', () => {
             const femaleHigh = result.find(a => a.name === 'Female-High');
             const femaleLow = result.find(a => a.name === 'Female-Low');
 
-            // Male rankings (200>100)
-            expect(maleHigh?.w1_rank).toBe(1);
-            expect(maleLow?.w1_rank).toBe(2);
-
-            // Female rankings (250>150)
+            // Combined ranking for Rx division (250 > 200 > 150 > 100)
             expect(femaleHigh?.w1_rank).toBe(1);
-            expect(femaleLow?.w1_rank).toBe(2);
+            expect(maleHigh?.w1_rank).toBe(2);
+            expect(femaleLow?.w1_rank).toBe(3);
+            expect(maleLow?.w1_rank).toBe(4);
+
+            // Verify overall order by total points
+            expect(result[0].name).toBe('Female-High');
+            expect(result[1].name).toBe('Male-High');
+            expect(result[2].name).toBe('Female-Low');
+            expect(result[3].name).toBe('Male-Low');
         });
     });
 

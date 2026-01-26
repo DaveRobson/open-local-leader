@@ -27,12 +27,12 @@ const seed = async () => {
     gender: 'M',
     age: 40,
     gymId: 'GLOBAL',
-    w1: 0,
-    w2: 0,
-    w3: 0,
-    w1_verified: false,
-    w2_verified: false,
-    w3_verified: false,
+    w1: 100, // Score for super admin
+    w2: 300,
+    w3: 200,
+    w1_verified: true,
+    w2_verified: true,
+    w3_verified: true,
     role: 'admin',
     superAdmin: true, // Set super admin flag here
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -40,12 +40,14 @@ const seed = async () => {
   });
   console.log('Super admin created');
 
-  // Create Gym with charity partners
-  const gymId = 'CFLONDON';
+  // Create Gyms
+  const cflondonGymId = 'CFLONDON';
+  const cfreadingGymId = 'CFREADING';
   const gymAdminUid = 'gymadmin';
+  const cfreadingAdminUid = 'cfreadingadmin';
   const charityTimestamp = admin.firestore.Timestamp.now();
 
-  await db.collection('gyms').doc(gymId).set({
+  await db.collection('gyms').doc(cflondonGymId).set({
     name: 'CrossFit London',
     location: 'London, UK',
     admins: [gymAdminUid],
@@ -97,9 +99,16 @@ const seed = async () => {
       },
     ],
   });
-  console.log('Gym created with charity partners');
 
-  // Create Gym Admin
+  await db.collection('gyms').doc(cfreadingGymId).set({
+    name: 'CrossFit Reading',
+    location: 'Reading, UK',
+    admins: [cfreadingAdminUid],
+    charities: [],
+  });
+  console.log('Gyms created with charity partners');
+
+  // Create Gym Admin for CFLONDON
   await admin.auth().createUser({
     uid: gymAdminUid,
     email: 'admin@cflondon.co.uk',
@@ -110,72 +119,110 @@ const seed = async () => {
     division: 'Rx',
     gender: 'M',
     age: 35,
-    gymId,
-    w1: 0,
-    w2: 0,
-    w3: 0,
-    w1_verified: false,
-    w2_verified: false,
-    w3_verified: false,
+    gymId: cflondonGymId,
+    w1: 110,
+    w2: 280,
+    w3: 210,
+    w1_verified: true,
+    w2_verified: true,
+    w3_verified: true,
     role: 'admin',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     createdBy: gymAdminUid,
   });
-  console.log('Gym admin created');
+  console.log('CFLONDON admin created');
 
-  // Create Athletes
-  const athlete1Uid = 'athlete1';
+  // Create Gym Admin for CFREADING
   await admin.auth().createUser({
-    uid: athlete1Uid,
-    email: 'oliver.davies@cflondon.co.uk',
+    uid: cfreadingAdminUid,
+    email: 'admin@cfreading.co.uk',
     password: 'password',
   });
-  await db.collection('cf_leaderboard_athletes').doc(athlete1Uid).set({
-    name: 'Oliver Davies',
+  await db.collection('cf_leaderboard_athletes').doc(cfreadingAdminUid).set({
+    name: 'Sarah Connor',
     division: 'Rx',
-    gender: 'M',
-    age: 30,
-    gymId,
-    w1: 0,
-    w2: 0,
-    w3: 0,
-    w1_verified: false,
-    w2_verified: false,
-    w3_verified: false,
-    role: 'member',
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    createdBy: athlete1Uid,
-  });
-
-  const athlete2Uid = 'athlete2';
-  await admin.auth().createUser({
-    uid: athlete2Uid,
-    email: 'emma.thompson@cflondon.co.uk',
-    password: 'password',
-  });
-  await db.collection('cf_leaderboard_athletes').doc(athlete2Uid).set({
-    name: 'Emma Thompson',
-    division: 'Scaled',
     gender: 'F',
-    age: 28,
-    gymId,
-    w1: 0,
-    w2: 0,
-    w3: 0,
-    w1_verified: false,
-    w2_verified: false,
-    w3_verified: false,
-    role: 'member',
+    age: 38,
+    gymId: cfreadingGymId,
+    w1: 115,
+    w2: 270,
+    w3: 220,
+    w1_verified: true,
+    w2_verified: true,
+    w3_verified: true,
+    role: 'admin',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    createdBy: athlete2Uid,
+    createdBy: cfreadingAdminUid,
   });
-  console.log('Athletes created');
+  console.log('CFREADING admin created');
+
+  // Create Athletes for CFLONDON
+  const cflondonAthletes = [
+    { uid: 'oliver.davies', email: 'oliver.davies@cflondon.co.uk', name: 'Oliver Davies', division: 'Rx', gender: 'M', age: 30, w1: 100, w2: 300, w3: 200 },
+    { uid: 'ben.smith', email: 'ben.smith@cflondon.co.uk', name: 'Ben Smith', division: 'Rx', gender: 'M', age: 32, w1: 100, w2: 310, w3: 190 }, // Tied w1 with Oliver
+    { uid: 'sarah.jones', email: 'sarah.jones@cflondon.co.uk', name: 'Sarah Jones', division: 'Rx', gender: 'F', age: 29, w1: 105, w2: 290, w3: 205 },
+    { uid: 'laura.white', email: 'laura.white@cflondon.co.uk', name: 'Laura White', division: 'Rx', gender: 'F', age: 31, w1: 95, w2: 320, w3: 195 },
+    { uid: 'emma.thompson', email: 'emma.thompson@cflondon.co.uk', name: 'Emma Thompson', division: 'Scaled', gender: 'F', age: 28, w1: 80, w2: 350, w3: 180 },
+    { uid: 'tom.brown', email: 'tom.brown@cflondon.co.uk', name: 'Tom Brown', division: 'Scaled', gender: 'M', age: 27, w1: 85, w2: 340, w3: 185 },
+    { uid: 'peter.green', email: 'peter.green@cflondon.co.uk', name: 'Peter Green', division: 'Foundations', gender: 'M', age: 45, w1: 60, w2: 400, w3: 150 },
+    { uid: 'alice.blue', email: 'alice.blue@cflondon.co.uk', name: 'Alice Blue', division: 'Foundations', gender: 'F', age: 42, w1: 55, w2: 410, w3: 145 },
+    { uid: 'missing.score', email: 'missing.score@cflondon.co.uk', name: 'Missing Score', division: 'Rx', gender: 'M', age: 25, w1: 100, w2: 0, w3: 0 }, // Missing w2, w3
+  ];
+
+  for (const data of cflondonAthletes) {
+    await admin.auth().createUser({ uid: data.uid, email: data.email, password: 'password' });
+    await db.collection('cf_leaderboard_athletes').doc(data.uid).set({
+      name: data.name,
+      division: data.division,
+      gender: data.gender,
+      age: data.age,
+      gymId: cflondonGymId,
+      w1: data.w1,
+      w2: data.w2,
+      w3: data.w3,
+      w1_verified: true,
+      w2_verified: data.w2 > 0, // Only verify if score exists
+      w3_verified: data.w3 > 0, // Only verify if score exists
+      role: 'member',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdBy: data.uid,
+    });
+  }
+  console.log('CFLONDON athletes created');
+
+  // Create Athletes for CFREADING
+  const cfreadingAthletes = [
+    { uid: 'mark.johnson', email: 'mark.johnson@cfreading.co.uk', name: 'Mark Johnson', division: 'Rx', gender: 'M', age: 33, w1: 108, w2: 295, w3: 208 },
+    { uid: 'chloe.davis', email: 'chloe.davis@cfreading.co.uk', name: 'Chloe Davis', division: 'Rx', gender: 'F', age: 26, w1: 112, w2: 285, w3: 212 },
+    { uid: 'sam.white', email: 'sam.white@cfreading.co.uk', name: 'Sam White', division: 'Scaled', gender: 'M', age: 30, w1: 82, w2: 345, w3: 182 },
+  ];
+
+  for (const data of cfreadingAthletes) {
+    await admin.auth().createUser({ uid: data.uid, email: data.email, password: 'password' });
+    await db.collection('cf_leaderboard_athletes').doc(data.uid).set({
+      name: data.name,
+      division: data.division,
+      gender: data.gender,
+      age: data.age,
+      gymId: cfreadingGymId,
+      w1: data.w1,
+      w2: data.w2,
+      w3: data.w3,
+      w1_verified: true,
+      w2_verified: true,
+      w3_verified: true,
+      role: 'member',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdBy: data.uid,
+    });
+  }
+  console.log('CFREADING athletes created');
 
   // Create workout configurations
   await db.collection('workouts').doc('current').set({
-    w1: { id: 'w1', name: '26.1', scoreType: 'reps', unit: 'reps', published: false },
-    w2: { id: 'w2', name: '26.2', scoreType: 'reps', unit: 'reps', published: false },
-    w3: { id: 'w3', name: '26.3', scoreType: 'reps', unit: 'reps', published: false },
+    w1: { id: 'w1', name: '26.1 (Reps)', scoreType: 'reps', unit: 'reps', published: true, hasTiebreaker: false },
+    w2: { id: 'w2', name: '26.2 (Time)', scoreType: 'time', unit: 'seconds', published: true, hasTiebreaker: false },
+    w3: { id: 'w3', name: '26.3 (CAP+Reps)', scoreType: 'time_cap_reps', timeCap: 900, unit: 'reps', published: true, hasTiebreaker: true },
   });
   console.log('Workout configurations created');
 
@@ -190,10 +237,10 @@ const seed = async () => {
         message: 'Missing or insufficient permissions.',
         code: 'permission-denied',
       },
-      context: { athleteId: athlete1Uid },
+      context: { athleteId: cflondonAthletes[0].uid },
       url: 'http://localhost:5173/?gymId=CFLONDON',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-      userId: athlete1Uid,
+      userId: cflondonAthletes[0].uid,
       timestamp: new Date(now.getTime() - 5 * 60 * 1000), // 5 minutes ago
     },
     {
@@ -232,7 +279,7 @@ const seed = async () => {
         message: 'Missing or insufficient permissions.',
         code: 'permission-denied',
       },
-      context: { athleteId: athlete2Uid, workout: 'w1' },
+      context: { athleteId: cflondonAthletes[1].uid, workout: 'w1' },
       url: 'http://localhost:5173/?gymId=CFLONDON',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       userId: gymAdminUid,
@@ -259,7 +306,7 @@ const seed = async () => {
       context: { filterGym: 'CFLONDON' },
       url: 'http://localhost:5173/?gymId=CFLONDON',
       userAgent: 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36',
-      userId: athlete2Uid,
+      userId: cflondonAthletes[1].uid,
       timestamp: new Date(now.getTime() - 3 * 60 * 60 * 1000), // 3 hours ago
     },
     {
@@ -276,7 +323,7 @@ const seed = async () => {
       context: { componentStack: '\n    at LeaderboardRow\n    at div\n    at main\n    at App' },
       url: 'http://localhost:5173/?gymId=CFLONDON',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-      userId: athlete1Uid,
+      userId: cflondonAthletes[0].uid,
       timestamp: new Date(now.getTime() - 6 * 60 * 60 * 1000), // 6 hours ago
     },
     {
@@ -329,7 +376,7 @@ const seed = async () => {
         message: 'Missing or insufficient permissions.',
         code: 'permission-denied',
       },
-      context: { athleteId: athlete1Uid, gymId: gymId },
+      context: { athleteId: cflondonAthletes[0].uid, gymId: cflondonGymId },
       url: 'http://localhost:5173/?gymId=CFLONDON',
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       userId: superAdminUid,

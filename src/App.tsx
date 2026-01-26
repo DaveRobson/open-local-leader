@@ -59,6 +59,7 @@ export default function App() {
     const [tempFilterDivision, setTempFilterDivision] = useState<DivisionFilter>('all');
     const [tempFilterGender, setTempFilterGender] = useState<GenderFilter>('all');
     const [tempFilterAgeGroup, setTempFilterAgeGroup] = useState<AgeGroupFilter>('all');
+    const [tempFilterGym, setTempFilterGym] = useState<string>('');
 
     // Gym profile form states
     const [gymProfileForm, setGymProfileForm] = useState({
@@ -120,7 +121,11 @@ export default function App() {
 
     useEffect(() => {
         if (user && !loadingProfile && viewState === 'landing') {
-            enterApp('');
+            if (userProfile?.gymId) {
+                enterApp(userProfile.gymId);
+            } else {
+                enterApp('');
+            }
         }
     }, [user, loadingProfile, userProfile, viewState]);
 
@@ -143,8 +148,9 @@ export default function App() {
             setTempFilterDivision(filterDivision);
             setTempFilterGender(filterGender);
             setTempFilterAgeGroup(filterAgeGroup);
+            setTempFilterGym(filterGym); // Sync gym filter
         }
-    }, [isFilterPopoutOpen, searchTerm, filterDivision, filterGender, filterAgeGroup]);
+    }, [isFilterPopoutOpen, searchTerm, filterDivision, filterGender, filterAgeGroup, filterGym]);
 
     // Initialize gym profile form when gym data loads
     useEffect(() => {
@@ -436,6 +442,16 @@ export default function App() {
         }
     };
 
+    const handleGymFilterChange = (gymId: string) => {
+        if (gymId) {
+            window.history.pushState({}, '', `?gymId=${gymId}`);
+        } else {
+            window.history.pushState({}, '', '/');
+        }
+        setFilterGym(gymId);
+    };
+
+    // Removed toggleMyGymGlobal function as the button is being removed
 
 
     if (authLoading || loading || loadingProfile || workoutConfigLoading) {
@@ -590,44 +606,7 @@ export default function App() {
         <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-gold-500/30">
 
             <nav className="sticky top-0 z-30 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800">
-                <div className="max-w-6xl mx-auto px-4 py-3">
-                    {/* Top row: Gym selector on left, Log Score and Sign Out on right */}
-                    <div className="flex items-center justify-between mb-4">
-                        <select
-                            className="bg-zinc-900 border border-zinc-800 text-xs rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:border-gold-500"
-                            value={filterGym}
-                            onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                                const gymId = e.target.value;
-                                if (gymId) {
-                                    window.location.href = `/?gymId=${gymId}`;
-                                } else {
-                                    window.location.href = '/';
-                                }
-                            }}
-                        >
-                            <option value="">All Gyms</option>
-                            {gyms.map(gym => (
-                                <option key={gym.id} value={gym.id}>{gym.name}</option>
-                            ))}
-                        </select>
-
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => userAthlete ? openScoreModal(userAthlete) : setIsProfileModalOpen(true)}
-                                className="p-2 px-3 text-xs bg-gold-600 hover:bg-gold-500 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors"
-                            >
-                                <Plus size={14}/> Log Score
-                            </button>
-                            <button onClick={() => signOut(auth)}
-                                    className="p-2 text-zinc-500 hover:text-red-500 transition-colors bg-zinc-900/50 rounded-lg hover:bg-zinc-800"
-                                    title="Sign Out">
-                                <LogOut size={14}/>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Gym Profile Section - always show, either specific gym or All Gyms */}
+                {/* Gym Profile Section - always show, either specific gym or Global Leaderboard */}
                 <div className="bg-zinc-950 border-b border-zinc-800">
                     <div className="max-w-6xl mx-auto px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -649,7 +628,7 @@ export default function App() {
                             {/* Gym Info */}
                             <div className="flex-1">
                                 <h2 className="text-lg font-black uppercase tracking-tighter text-white leading-none">
-                                    {filterGym ? gyms.find(g => g.id === filterGym)?.name : 'All Gyms'}
+                                    {filterGym ? gyms.find(g => g.id === filterGym)?.name : 'Global Leaderboard'}
                                 </h2>
                                 {filterGym && gyms.find(g => g.id === filterGym)?.location && (
                                     <p className="text-xs text-zinc-500 mt-0.5">
@@ -665,15 +644,28 @@ export default function App() {
                                 </p>
                             </div>
 
-                            {/* Quick Admin Access (if admin) */}
-                            {isAdmin && filterGym && (
+                            {/* Quick Admin Access (if admin) and Log Score/Sign Out */}
+                            <div className="flex items-center gap-2">
+                                {isAdmin && filterGym && (
+                                    <button
+                                        onClick={() => setActiveTab('admin')}
+                                        className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-medium transition-colors"
+                                    >
+                                        Manage Gym
+                                    </button>
+                                )}
                                 <button
-                                    onClick={() => setActiveTab('admin')}
-                                    className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-medium transition-colors"
+                                    onClick={() => userAthlete ? openScoreModal(userAthlete) : setIsProfileModalOpen(true)}
+                                    className="p-2 px-3 text-xs bg-gold-600 hover:bg-gold-500 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors"
                                 >
-                                    Manage Gym
+                                    <Plus size={14}/> Log Score
                                 </button>
-                            )}
+                                <button onClick={() => signOut(auth)}
+                                        className="p-2 text-zinc-500 hover:text-red-500 transition-colors bg-zinc-900/50 rounded-lg hover:bg-zinc-800"
+                                        title="Sign Out">
+                                    <LogOut size={14}/>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -719,6 +711,15 @@ export default function App() {
                         <div className="flex items-center justify-between gap-4">
                             {/* Filter Pills */}
                             <div className="flex gap-2 items-center flex-wrap flex-1">
+                                {filterGym && ( // Only show gym pill if a specific gym is selected
+                                    <button
+                                        onClick={() => setIsFilterPopoutOpen(true)}
+                                        className="px-3 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 rounded-full text-xs font-medium hover:bg-gold-500/30 transition-colors flex items-center gap-1.5"
+                                    >
+                                        {gyms.find(g => g.id === filterGym)?.name}
+                                        <X size={12} onClick={(e) => { e.stopPropagation(); handleGymFilterChange(''); }} />
+                                    </button>
+                                )}
                                 {filterDivision !== 'all' && (
                                     <button
                                         onClick={() => setIsFilterPopoutOpen(true)}
@@ -755,19 +756,23 @@ export default function App() {
                                         <X size={12} onClick={(e) => { e.stopPropagation(); setSearchTerm(''); }} />
                                     </button>
                                 )}
-                                {(filterDivision === 'all' && filterGender === 'all' && filterAgeGroup === 'all' && !searchTerm) && (
+                                {(!filterGym && filterDivision === 'all' && filterGender === 'all' && filterAgeGroup === 'all' && !searchTerm) && (
                                     <span className="text-xs text-zinc-500">No filters applied</span>
                                 )}
                             </div>
 
                             {/* Filter Button */}
-                            <button
-                                onClick={() => setIsFilterPopoutOpen(!isFilterPopoutOpen)}
-                                className="p-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors flex-shrink-0"
-                                title="Filters"
-                            >
-                                <Filter size={16} className="text-zinc-400" />
-                            </button>
+                            <div className="flex gap-2">
+                                {/* Removed My Gym / Global Toggle button */}
+                                <button
+                                    onClick={() => setIsFilterPopoutOpen(!isFilterPopoutOpen)}
+                                    className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-colors flex-shrink-0 flex items-center gap-2"
+                                    title="Filters"
+                                >
+                                    <Filter size={16} className="text-zinc-400" />
+                                    <span className="text-sm text-zinc-300">Filter</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1327,9 +1332,10 @@ export default function App() {
                                             <div className="space-y-2">
                                                 <input
                                                     type="number"
+
                                                     step="any"
                                                     placeholder={config.unit || '0'}
-                                                    className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-gold-500 outline-none"
+                                                    className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:outline-none focus:border-gold-500 outline-none"
                                                     value={scoreValue as string}
                                                     onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
                                                         ...scoreForm,
@@ -1488,6 +1494,23 @@ export default function App() {
                 title="Filters"
             >
                 <div className="space-y-4">
+                    {/* Gym Filter */}
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
+                            Gym
+                        </label>
+                        <select
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-gold-500"
+                            value={tempFilterGym}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setTempFilterGym(e.target.value)}
+                        >
+                            <option value="">All Gyms</option> {/* Changed to All Gyms */}
+                            {gyms.map(gym => (
+                                <option key={gym.id} value={gym.id}>{gym.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     {/* Search */}
                     <div>
                         <label className="block text-sm font-medium text-zinc-300 mb-2">
@@ -1564,6 +1587,7 @@ export default function App() {
                     <div className="flex gap-3 pt-2">
                         <button
                             onClick={() => {
+                                setTempFilterGym('');
                                 setTempSearchTerm('');
                                 setTempFilterDivision('all');
                                 setTempFilterGender('all');
@@ -1575,6 +1599,7 @@ export default function App() {
                         </button>
                         <button
                             onClick={() => {
+                                handleGymFilterChange(tempFilterGym); // Apply gym filter
                                 setSearchTerm(tempSearchTerm);
                                 setFilterDivision(tempFilterDivision);
                                 setFilterGender(tempFilterGender);
