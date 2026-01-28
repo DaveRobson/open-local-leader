@@ -7,7 +7,7 @@ import {
     signOut,
 } from 'firebase/auth';
 import {deleteDoc, doc, serverTimestamp, setDoc, updateDoc} from 'firebase/firestore';
-import {ChevronRight, Filter, Globe, LogOut, MapPin, Plus, Search, ShieldCheck, Trash2, Trophy, X} from 'lucide-react';
+import {ChevronRight, Filter, Globe, LogOut, MapPin, Plus, Search, ShieldCheck, Trash2, Trophy, UserMinus, UserPlus, Users, X} from 'lucide-react';
 
 import {auth, db} from './config/firebase';
 import {
@@ -53,6 +53,7 @@ export default function App() {
     const [filterDivision, setFilterDivision] = useState<DivisionFilter>('all');
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [activeTab, setActiveTab] = useState<ActiveTab>('leaderboard');
+    const [activeAdminSubTab, setActiveAdminSubTab] = useState<'verifications' | 'profile' | 'admins' | 'charities'>('verifications');
 
     // Temporary filter states for the modal
     const [tempSearchTerm, setTempSearchTerm] = useState<string>('');
@@ -464,6 +465,10 @@ export default function App() {
         if (tabId === 'admin' && myGymId && filterGym !== myGymId) {
             handleGymFilterChange(myGymId);
         }
+        // Reset admin sub-tab when entering admin tab
+        if (tabId === 'admin') {
+            setActiveAdminSubTab('verifications');
+        }
         // Auto-navigate to super admin's allocated gym when clicking super admin tab
         if (tabId === 'superAdmin' && myGymId && filterGym !== myGymId) {
             handleGymFilterChange(myGymId);
@@ -826,7 +831,39 @@ export default function App() {
                     )
                 ) : activeTab === 'admin' ? (
                     <div>
-                        <h2 className="text-lg font-bold text-white mb-3">Pending Verifications</h2>
+                        {/* Admin Sub-Tabs */}
+                        <div className="mb-6 border-b border-zinc-800/50">
+                            <div className="flex gap-4 overflow-x-auto no-scrollbar">
+                                {[
+                                    {id: 'verifications', label: 'Verifications', icon: ShieldCheck},
+                                    ...(myGymId ? [{id: 'profile', label: 'Gym Profile', icon: MapPin}] : []),
+                                    ...(myGymId ? [{id: 'admins', label: 'Admin Management', icon: Users}] : []),
+                                    ...(myGymId ? [{id: 'charities', label: 'Charities', icon: Globe}] : []),
+                                ].map(tab => {
+                                    const Icon = tab.icon;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setActiveAdminSubTab(tab.id as any)}
+                                            className={`
+                                                py-3 px-2 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors flex items-center gap-2
+                                                ${activeAdminSubTab === tab.id
+                                                ? 'border-gold-500 text-white'
+                                                : 'border-transparent text-zinc-500 hover:text-zinc-300'}
+                                            `}
+                                        >
+                                            <Icon size={16} />
+                                            {tab.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Verifications Sub-Tab */}
+                        {activeAdminSubTab === 'verifications' && (
+                            <div>
+                                <h2 className="text-lg font-bold text-white mb-3">Pending Verifications</h2>
                         {pendingVerifications.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                 {pendingVerifications.map(({ athlete, workout, score, workoutLabel }, index) => (
@@ -858,10 +895,12 @@ export default function App() {
                                 <p className="text-zinc-500 text-sm mt-1">Nothing to see here!</p>
                             </div>
                         )}
+                            </div>
+                        )}
 
-                        {/* Gym Profile Management Section */}
-                        {myGymId && (
-                            <div className="mt-8">
+                        {/* Gym Profile Sub-Tab */}
+                        {activeAdminSubTab === 'profile' && myGymId && (
+                            <div>
                                 <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
                                     <MapPin className="w-5 h-5 text-gold-500" />
                                     Gym Profile
@@ -980,9 +1019,166 @@ export default function App() {
                             </div>
                         )}
 
-                        {/* Charity Management Section */}
-                        {myGymId && (
-                            <div className="mt-8">
+                        {/* Admin Management Sub-Tab */}
+                        {activeAdminSubTab === 'admins' && myGymId && (
+                            <div>
+                                <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+                                    <Users className="w-5 h-5 text-gold-500" />
+                                    Admin Management
+                                </h2>
+                                <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+                                    {/* Current Admins */}
+                                    <div className="mb-6">
+                                        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                                            <ShieldCheck className="w-4 h-4 text-gold-500" />
+                                            Current Admins
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {(() => {
+                                                const currentGym = gyms.find(g => g.id === myGymId);
+                                                const adminIds = currentGym?.admins || [];
+
+                                                if (adminIds.length === 0) {
+                                                    return (
+                                                        <p className="text-zinc-500 text-sm italic">No admins assigned</p>
+                                                    );
+                                                }
+
+                                                return adminIds.map(adminId => {
+                                                    const adminAthlete = athletes.find(a => a.createdBy === adminId);
+                                                    const isCurrentUser = adminId === user?.uid;
+
+                                                    return (
+                                                        <div
+                                                            key={adminId}
+                                                            className="flex items-center justify-between bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <ShieldCheck className="w-4 h-4 text-gold-500" />
+                                                                <div>
+                                                                    <p className="text-white text-sm font-medium">
+                                                                        {adminAthlete?.name || 'Unknown User'}
+                                                                        {isCurrentUser && (
+                                                                            <span className="ml-2 text-xs text-gold-500">(You)</span>
+                                                                        )}
+                                                                    </p>
+                                                                    <p className="text-zinc-500 text-xs">{adminId}</p>
+                                                                </div>
+                                                            </div>
+                                                            {!isCurrentUser && (
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        if (!confirm(`Remove ${adminAthlete?.name || 'this user'} as admin?`)) {
+                                                                            return;
+                                                                        }
+                                                                        try {
+                                                                            const updatedAdmins = adminIds.filter(id => id !== adminId);
+                                                                            await updateDoc(doc(db, 'gyms', myGymId), {
+                                                                                admins: updatedAdmins
+                                                                            });
+                                                                            alert('Admin removed successfully!');
+                                                                        } catch (error) {
+                                                                            console.error('Error removing admin:', error);
+                                                                            alert('Failed to remove admin. Please try again.');
+                                                                        }
+                                                                    }}
+                                                                    className="text-xs bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/40 font-medium px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5"
+                                                                >
+                                                                    <UserMinus size={14} />
+                                                                    Remove
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                });
+                                            })()}
+                                        </div>
+                                    </div>
+
+                                    {/* Available Members to Promote */}
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                                            <UserPlus className="w-4 h-4 text-gold-500" />
+                                            Promote Members to Admin
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {(() => {
+                                                const currentGym = gyms.find(g => g.id === myGymId);
+                                                const adminIds = currentGym?.admins || [];
+
+                                                // Get all unique user IDs from athletes at this gym who aren't already admins
+                                                const gymAthletes = athletes.filter(a => a.gymId === myGymId);
+                                                const uniqueUserIds = new Map<string, Athlete>();
+
+                                                gymAthletes.forEach(athlete => {
+                                                    if (!uniqueUserIds.has(athlete.createdBy)) {
+                                                        uniqueUserIds.set(athlete.createdBy, athlete);
+                                                    }
+                                                });
+
+                                                const availableMembers = Array.from(uniqueUserIds.entries())
+                                                    .filter(([userId]) => !adminIds.includes(userId))
+                                                    .map(([userId, athlete]) => ({ userId, athlete }));
+
+                                                if (availableMembers.length === 0) {
+                                                    return (
+                                                        <p className="text-zinc-500 text-sm italic">
+                                                            All gym members are already admins
+                                                        </p>
+                                                    );
+                                                }
+
+                                                return availableMembers.map(({ userId, athlete }) => (
+                                                    <div
+                                                        key={userId}
+                                                        className="flex items-center justify-between bg-zinc-800/50 border border-zinc-700/50 rounded-lg px-4 py-3"
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
+                                                                <span className="text-white text-xs font-bold">
+                                                                    {athlete.name.charAt(0).toUpperCase()}
+                                                                </span>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-white text-sm font-medium">
+                                                                    {athlete.name}
+                                                                </p>
+                                                                <p className="text-zinc-500 text-xs">{userId}</p>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!confirm(`Promote ${athlete.name} to admin? They will be able to manage scores and gym settings.`)) {
+                                                                    return;
+                                                                }
+                                                                try {
+                                                                    const updatedAdmins = [...adminIds, userId];
+                                                                    await updateDoc(doc(db, 'gyms', myGymId), {
+                                                                        admins: updatedAdmins
+                                                                    });
+                                                                    alert('Member promoted to admin successfully!');
+                                                                } catch (error) {
+                                                                    console.error('Error promoting member:', error);
+                                                                    alert('Failed to promote member. Please try again.');
+                                                                }
+                                                            }}
+                                                            className="text-xs bg-gold-600/20 hover:bg-gold-600/30 text-gold-400 border border-gold-600/40 font-medium px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5"
+                                                        >
+                                                            <UserPlus size={14} />
+                                                            Promote
+                                                        </button>
+                                                    </div>
+                                                ));
+                                            })()}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Charity Management Sub-Tab */}
+                        {activeAdminSubTab === 'charities' && myGymId && (
+                            <div>
                                 <CharityManagement
                                     gymId={myGymId}
                                     charities={gyms.find(g => g.id === myGymId)?.charities || []}
