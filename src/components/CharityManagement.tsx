@@ -186,10 +186,10 @@ export function CharityManagement({ gymId, charities, currentUserId }: CharityMa
                                         href={charity.websiteUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 text-sm text-gold-500 hover:text-gold-400 transition-colors"
+                                        className="inline-flex items-center gap-1 text-sm text-gold-500 hover:text-gold-400 transition-colors max-w-full"
                                     >
-                                        {charity.websiteUrl}
-                                        <ExternalLink className="w-3 h-3" />
+                                        <span className="truncate">{charity.websiteUrl}</span>
+                                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
                                     </a>
                                 </div>
                             </div>
