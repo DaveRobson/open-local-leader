@@ -98,9 +98,9 @@ export default function App() {
 
         const openGymFromUrl = () => {
             if (gymIdFromUrl) {
-                setMyGymId(gymIdFromUrl);
                 setFilterGym(gymIdFromUrl);
                 setViewState('app');
+                // myGymId will be set from userProfile in the enterApp useEffect
             }
         }
         openGymFromUrl();
@@ -108,16 +108,24 @@ export default function App() {
 
 
     const enterApp = (gymIdToSet: string) => {
+        // filterGym controls which gym's data is displayed
         if (gymIdToSet) {
-            setMyGymId(gymIdToSet);
             setFilterGym(gymIdToSet);
             window.history.pushState({}, '', `?gymId=${gymIdToSet}`);
         } else {
-            setMyGymId(''); // Clear myGymId for global view
+            setFilterGym(''); // Global view
             window.history.pushState({}, '', '/');
         }
         setViewState('app');
+        // myGymId is set separately via useEffect based on userProfile
     };
+
+    // Always sync myGymId with user's profile gym
+    useEffect(() => {
+        if (userProfile?.gymId && !loadingProfile) {
+            setMyGymId(userProfile.gymId);
+        }
+    }, [userProfile, loadingProfile]);
 
     useEffect(() => {
         if (user && !loadingProfile && viewState === 'landing') {
