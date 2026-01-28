@@ -451,6 +451,18 @@ export default function App() {
         setFilterGym(gymId);
     };
 
+    const handleTabChange = (tabId: ActiveTab) => {
+        // Auto-navigate to user's gym when clicking admin tab
+        if (tabId === 'admin' && myGymId && filterGym !== myGymId) {
+            handleGymFilterChange(myGymId);
+        }
+        // Auto-navigate to super admin's allocated gym when clicking super admin tab
+        if (tabId === 'superAdmin' && myGymId && filterGym !== myGymId) {
+            handleGymFilterChange(myGymId);
+        }
+        setActiveTab(tabId);
+    };
+
     // Removed toggleMyGymGlobal function as the button is being removed
 
 
@@ -648,7 +660,7 @@ export default function App() {
                             <div className="flex items-center gap-2">
                                 {isAdmin && filterGym && (
                                     <button
-                                        onClick={() => setActiveTab('admin')}
+                                        onClick={() => handleTabChange('admin')}
                                         className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-medium transition-colors"
                                     >
                                         Manage Gym
@@ -687,7 +699,7 @@ export default function App() {
                         ].map(tab => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as ActiveTab)}
+                                onClick={() => handleTabChange(tab.id as ActiveTab)}
                                 className={`
                                     py-3 text-sm font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors
                                     ${activeTab === tab.id
