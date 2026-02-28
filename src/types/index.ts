@@ -40,6 +40,10 @@ export interface Athlete {
     w1_tiebreaker?: number;
     w2_tiebreaker?: number;
     w3_tiebreaker?: number;
+    // Per-workout divisions (optional for backward compatibility)
+    w1_division?: 'Rx' | 'Scaled' | 'Foundations';
+    w2_division?: 'Rx' | 'Scaled' | 'Foundations';
+    w3_division?: 'Rx' | 'Scaled' | 'Foundations';
     role: 'admin' | 'member';
     superAdmin?: boolean;
     createdAt: never; // serverTimestamp
@@ -68,6 +72,9 @@ export interface ScoreForm {
     w1_tiebreaker?: string | number;
     w2_tiebreaker?: string | number;
     w3_tiebreaker?: string | number;
+    w1_division: 'Rx' | 'Scaled' | 'Foundations';
+    w2_division: 'Rx' | 'Scaled' | 'Foundations';
+    w3_division: 'Rx' | 'Scaled' | 'Foundations';
     division: 'Rx' | 'Scaled' | 'Foundations';
     age: string | number;
     gender: 'M' | 'F';

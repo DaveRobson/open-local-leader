@@ -105,19 +105,21 @@ export const calculateRankings = (
     // 1. Initialize all athletes with ranking fields
     const processed: AthleteWithRank[] = athletes.map(a => ({...a, totalPoints: 0, participation: 0}));
 
-    // 2. Calculate ranks for each published workout
-    // Rankings are combined across genders - filters allow users to view by gender if needed
+    // 2. Calculate ranks for each published workout within per-workout divisions,
+    // then apply offsets so each division sits below the one above it globally.
+    // The stored rank is the effective global position (offset already baked in).
     (['w1', 'w2', 'w3'] as const).forEach(w => {
         const config = workoutConfigs[w];
         if (!config.published) return;
 
+        const divKey = `${w}_division` as keyof AthleteWithRank;
         const divisions = {
-            Rx: processed.filter(a => a.division === 'Rx'),
-            Scaled: processed.filter(a => a.division === 'Scaled'),
-            Foundations: processed.filter(a => a.division === 'Foundations'),
+            Rx: processed.filter(a => (a[divKey] || a.division) === 'Rx'),
+            Scaled: processed.filter(a => (a[divKey] || a.division) === 'Scaled'),
+            Foundations: processed.filter(a => (a[divKey] || a.division) === 'Foundations'),
         };
 
-        // Sort and rank within each division, across all genders
+        // Sort and rank within each division
         (['Rx', 'Scaled', 'Foundations'] as const).forEach(div => {
             const group = divisions[div];
             sortByPerformance(group, w, config);
@@ -134,6 +136,19 @@ export const calculateRankings = (
                 currentRank++;
             }
         });
+
+        // Bake division offsets into the rank so it represents a true global position.
+        // Scaled #1 sits immediately below the last Rx athlete who scored.
+        // Foundations #1 sits immediately below the last Scaled athlete who scored.
+        const rxScored = divisions.Rx.filter(a => getScore(a[w]) > 0).length;
+        const scaledScored = divisions.Scaled.filter(a => getScore(a[w]) > 0).length;
+
+        divisions.Scaled.filter(a => getScore(a[w]) > 0).forEach(a => {
+            a[`${w}_rank`] = (a[`${w}_rank`] as number) + rxScored;
+        });
+        divisions.Foundations.filter(a => getScore(a[w]) > 0).forEach(a => {
+            a[`${w}_rank`] = (a[`${w}_rank`] as number) + rxScored + scaledScored;
+        });
     });
 
     // 3. Calculate total points, but only for "live" workouts.
@@ -143,33 +158,16 @@ export const calculateRankings = (
     );
 
     if (liveWorkouts.length > 0) {
-        // Penalty for missing a workout is based on division size + 1
+        const missedPenalty = processed.length + 1;
+
         processed.forEach(a => {
-            const sameDivisionCount = processed.filter(p => p.division === a.division).length;
-            const missedPenalty = sameDivisionCount + 1;
-
             liveWorkouts.forEach(wKey => {
-                const score = getScore(a[wKey]);
-                let effectiveRankForTotalPoints = 0;
-
-                if (score > 0) {
-                    effectiveRankForTotalPoints = a[`${wKey}_rank`] || missedPenalty;
+                if (getScore(a[wKey]) > 0) {
+                    a.totalPoints += a[`${wKey}_rank`] || missedPenalty;
                     a.participation++;
                 } else {
-                    effectiveRankForTotalPoints = missedPenalty;
+                    a.totalPoints += missedPenalty;
                 }
-
-                // Add division offset to effective rank for total points calculation
-                // This ensures Scaled ranks below Rx, Foundations below Scaled
-                if (a.division === 'Scaled') {
-                    const rxAthletesInWorkout = processed.filter(p => p.division === 'Rx' && getScore(p[wKey]) > 0).length;
-                    effectiveRankForTotalPoints += rxAthletesInWorkout;
-                } else if (a.division === 'Foundations') {
-                    const rxAthletesInWorkout = processed.filter(p => p.division === 'Rx' && getScore(p[wKey]) > 0).length;
-                    const scaledAthletesInWorkout = processed.filter(p => p.division === 'Scaled' && getScore(p[wKey]) > 0).length;
-                    effectiveRankForTotalPoints += (rxAthletesInWorkout + scaledAthletesInWorkout);
-                }
-                a.totalPoints += effectiveRankForTotalPoints;
             });
         });
     }

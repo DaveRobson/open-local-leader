@@ -84,7 +84,8 @@ export default function App() {
     });
     const [newGymName, setNewGymName] = useState<string>('');
     const [scoreForm, setScoreForm] = useState<ScoreForm>({
-        w1: '', w2: '', w3: '', w1_verified: false, w2_verified: false, w3_verified: false, division: 'Rx', age: '', gender: 'M'
+        w1: '', w2: '', w3: '', w1_verified: false, w2_verified: false, w3_verified: false,
+        w1_division: 'Rx', w2_division: 'Rx', w3_division: 'Rx', division: 'Rx', age: '', gender: 'M'
     });
 
     // State for email/password auth
@@ -185,44 +186,18 @@ export default function App() {
             return rankedAthletes;
         }
 
-        // For workout-specific tabs, sort by: has score, then division, then score within division
+        // For workout-specific tabs, sort by the pre-computed rank (which already
+        // encodes division offsets). Athletes with no score go to the bottom.
         const workoutKey = activeTab as WorkoutId;
-        const config = workoutConfigs[workoutKey];
-        const divisionOrder = { 'Rx': 0, 'Scaled': 1, 'Foundations': 2 };
+        const rankKey = `${workoutKey}_rank` as keyof AthleteWithRank;
 
         return [...rankedAthletes].sort((a, b) => {
-            const scoreA = a[workoutKey] || 0;
-            const scoreB = b[workoutKey] || 0;
-
-            // Athletes with no score always go to the bottom (regardless of division)
-            if (scoreA === 0 && scoreB > 0) return 1;
-            if (scoreB === 0 && scoreA > 0) return -1;
-            if (scoreA === 0 && scoreB === 0) {
-                // Both have no score - sort by division
-                return divisionOrder[a.division] - divisionOrder[b.division];
-            }
-
-            // Both have scores - sort by division first
-            const divisionDiff = divisionOrder[a.division] - divisionOrder[b.division];
-            if (divisionDiff !== 0) return divisionDiff;
-
-            // Within same division, sort by score type
-            if (config?.scoreType === 'time') {
-                return scoreA - scoreB; // Lower time is better
-            } else if (config?.scoreType === 'time_cap_reps') {
-                const cappedKey = `${workoutKey}_capped` as keyof Athlete;
-                const aCapped = a[cappedKey] as boolean | undefined;
-                const bCapped = b[cappedKey] as boolean | undefined;
-                const aFinished = !aCapped;
-                const bFinished = !bCapped;
-
-                if (aFinished && !bFinished) return -1;
-                if (!aFinished && bFinished) return 1;
-                if (aFinished && bFinished) return scoreA - scoreB; // Lower time
-                return scoreB - scoreA; // Higher reps for capped
-            }
-
-            return scoreB - scoreA; // Higher score is better (reps, weight)
+            const rankA = a[rankKey] as number | undefined;
+            const rankB = b[rankKey] as number | undefined;
+            if (rankA == null && rankB == null) return 0;
+            if (rankA == null) return 1;
+            if (rankB == null) return -1;
+            return rankA - rankB;
         });
     }, [rankedAthletes, activeTab, workoutConfigs]);
 
@@ -333,6 +308,9 @@ export default function App() {
             await setDoc(athleteDocRef, {
                 name: newAthlete.name,
                 division: newAthlete.division,
+                w1_division: newAthlete.division,
+                w2_division: newAthlete.division,
+                w3_division: newAthlete.division,
                 gender: newAthlete.gender,
                 age: parseInt(String(newAthlete.age), 10) || 18,
                 gymId: myGymId,
@@ -370,7 +348,9 @@ export default function App() {
                 w1_tiebreaker: scoreForm.w1_tiebreaker ? parseFloat(String(scoreForm.w1_tiebreaker)) : 0,
                 w2_tiebreaker: scoreForm.w2_tiebreaker ? parseFloat(String(scoreForm.w2_tiebreaker)) : 0,
                 w3_tiebreaker: scoreForm.w3_tiebreaker ? parseFloat(String(scoreForm.w3_tiebreaker)) : 0,
-                division: scoreForm.division,
+                w1_division: scoreForm.w1_division,
+                w2_division: scoreForm.w2_division,
+                w3_division: scoreForm.w3_division,
                 gender: scoreForm.gender,
                 age: parseInt(String(scoreForm.age), 10),
                 lastEditedBy: user.uid
@@ -416,6 +396,9 @@ export default function App() {
             w1_tiebreaker: athlete.w1_tiebreaker || '',
             w2_tiebreaker: athlete.w2_tiebreaker || '',
             w3_tiebreaker: athlete.w3_tiebreaker || '',
+            w1_division: athlete.w1_division || athlete.division,
+            w2_division: athlete.w2_division || athlete.division,
+            w3_division: athlete.w3_division || athlete.division,
             division: athlete.division,
             gender: athlete.gender || 'M',
             age: athlete.age || '',
@@ -1227,10 +1210,6 @@ export default function App() {
                                             <div className="flex gap-2 items-center flex-wrap">
                                                 <span
                                                     className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-400 bg-zinc-800 uppercase font-bold">
-                                                  {athlete.division}
-                                                </span>
-                                                <span
-                                                    className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-700 text-zinc-400 bg-zinc-800 uppercase font-bold">
                                                   {athlete.gender}
                                                 </span>
                                                 {athlete.age && (
@@ -1263,7 +1242,12 @@ export default function App() {
                                                             {workoutConfigs[wKey].name}
                                                         </span>
                                                         <span className={`${!athlete[wKey] ? 'text-zinc-700' : 'text-gold-400 font-medium'}`}>
-                                                            {athlete[wKey] ? `${formatScoreDisplay(athlete, wKey)} (${athlete[`${wKey}_rank` as keyof AthleteWithRank]})` : '--'}
+                                                            {athlete[wKey] ? (
+                                                                <>
+                                                                    {formatScoreDisplay(athlete, wKey)} (#{athlete[`${wKey}_rank` as keyof AthleteWithRank]})
+                                                                    <span className="ml-1 text-[9px] text-zinc-500">{(athlete[`${wKey}_division` as keyof AthleteWithRank] || athlete.division) as string}</span>
+                                                                </>
+                                                            ) : '--'}
                                                             {athlete[`${wKey}_verified` as keyof Athlete] && <ShieldCheck size={12} className="inline-block ml-1 text-blue-500"/>}
                                                         </span>
                                                     </div>
@@ -1277,6 +1261,11 @@ export default function App() {
                                                 <span className="text-xs text-zinc-500 font-medium uppercase">
                                                   {athlete[activeTab as keyof Athlete] ? `Score (${athlete[`${activeTab}_rank` as keyof AthleteWithRank]} Points)` : 'No Score Logged'}
                                                 </span>
+                                                {athlete[activeTab as keyof Athlete] && (
+                                                    <span className="text-xs text-zinc-500">
+                                                        {(athlete[`${activeTab}_division` as keyof AthleteWithRank] || athlete.division) as string}
+                                                    </span>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -1480,6 +1469,20 @@ export default function App() {
                                             )}
                                         </div>
 
+                                        {isAdmin && (
+                                            <div className="mb-2">
+                                                <Select
+                                                    label="Division"
+                                                    options={[{label: 'Rx', value: 'Rx'}, {label: 'Scaled', value: 'Scaled'}, {label: 'Foundations', value: 'Foundations'}]}
+                                                    value={scoreForm[`${workoutKey}_division` as keyof ScoreForm] as string}
+                                                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setScoreForm({
+                                                        ...scoreForm,
+                                                        [`${workoutKey}_division`]: e.target.value as 'Rx' | 'Scaled' | 'Foundations'
+                                                    })}
+                                                />
+                                            </div>
+                                        )}
+
                                         {config.description && (
                                             <p className="text-xs text-zinc-400 mb-3 whitespace-pre-line">{config.description}</p>
                                         )}
@@ -1578,19 +1581,7 @@ export default function App() {
                         </div>
 
                         {isAdmin && (
-                            <div className="grid grid-cols-3 gap-2">
-                                <Select
-                                    label="Div"
-                                    options={[{label: 'Rx', value: 'Rx'}, {label: 'Sc', value: 'Scaled'}, {
-                                        label: 'Found',
-                                        value: 'Foundations'
-                                    }]}
-                                    value={scoreForm.division}
-                                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setScoreForm({
-                                        ...scoreForm,
-                                        division: e.target.value as 'Rx' | 'Scaled' | 'Foundations'
-                                    })}
-                                />
+                            <div className="grid grid-cols-2 gap-2">
                                 <Select
                                     label="Sex"
                                     options={[{label: 'M', value: 'M'}, {label: 'F', value: 'F'}]}

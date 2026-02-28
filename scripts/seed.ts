@@ -24,6 +24,9 @@ const seed = async () => {
   await db.collection('cf_leaderboard_athletes').doc(superAdminUid).set({
     name: 'Super Admin',
     division: 'Rx',
+    w1_division: 'Rx',
+    w2_division: 'Rx',
+    w3_division: 'Rx',
     gender: 'M',
     age: 40,
     gymId: 'GLOBAL',
@@ -50,7 +53,7 @@ const seed = async () => {
   await db.collection('gyms').doc(cflondonGymId).set({
     name: 'CrossFit London',
     location: 'London, UK',
-    admins: [gymAdminUid],
+    admins: [gymAdminUid, superAdminUid],
     charities: [
       {
         id: randomUUID(),
@@ -117,6 +120,9 @@ const seed = async () => {
   await db.collection('cf_leaderboard_athletes').doc(gymAdminUid).set({
     name: 'James Wilson',
     division: 'Rx',
+    w1_division: 'Rx',
+    w2_division: 'Rx',
+    w3_division: 'Rx',
     gender: 'M',
     age: 35,
     gymId: cflondonGymId,
@@ -141,6 +147,9 @@ const seed = async () => {
   await db.collection('cf_leaderboard_athletes').doc(cfreadingAdminUid).set({
     name: 'Sarah Connor',
     division: 'Rx',
+    w1_division: 'Rx',
+    w2_division: 'Rx',
+    w3_division: 'Rx',
     gender: 'F',
     age: 38,
     gymId: cfreadingGymId,
@@ -158,15 +167,15 @@ const seed = async () => {
 
   // Create Athletes for CFLONDON
   const cflondonAthletes = [
-    { uid: 'oliver.davies', email: 'oliver.davies@cflondon.co.uk', name: 'Oliver Davies', division: 'Rx', gender: 'M', age: 30, w1: 100, w2: 300, w3: 200 },
-    { uid: 'ben.smith', email: 'ben.smith@cflondon.co.uk', name: 'Ben Smith', division: 'Rx', gender: 'M', age: 32, w1: 100, w2: 310, w3: 190 }, // Tied w1 with Oliver
-    { uid: 'sarah.jones', email: 'sarah.jones@cflondon.co.uk', name: 'Sarah Jones', division: 'Rx', gender: 'F', age: 29, w1: 105, w2: 290, w3: 205 },
-    { uid: 'laura.white', email: 'laura.white@cflondon.co.uk', name: 'Laura White', division: 'Rx', gender: 'F', age: 31, w1: 95, w2: 320, w3: 195 },
-    { uid: 'emma.thompson', email: 'emma.thompson@cflondon.co.uk', name: 'Emma Thompson', division: 'Scaled', gender: 'F', age: 28, w1: 80, w2: 350, w3: 180 },
-    { uid: 'tom.brown', email: 'tom.brown@cflondon.co.uk', name: 'Tom Brown', division: 'Scaled', gender: 'M', age: 27, w1: 85, w2: 340, w3: 185 },
-    { uid: 'peter.green', email: 'peter.green@cflondon.co.uk', name: 'Peter Green', division: 'Foundations', gender: 'M', age: 45, w1: 60, w2: 400, w3: 150 },
-    { uid: 'alice.blue', email: 'alice.blue@cflondon.co.uk', name: 'Alice Blue', division: 'Foundations', gender: 'F', age: 42, w1: 55, w2: 410, w3: 145 },
-    { uid: 'missing.score', email: 'missing.score@cflondon.co.uk', name: 'Missing Score', division: 'Rx', gender: 'M', age: 25, w1: 100, w2: 0, w3: 0 }, // Missing w2, w3
+    { uid: 'oliver.davies', email: 'oliver.davies@cflondon.co.uk', name: 'Oliver Davies', division: 'Rx', w1_division: 'Rx', w2_division: 'Rx', w3_division: 'Rx', gender: 'M', age: 30, w1: 100, w2: 300, w3: 200 },
+    { uid: 'ben.smith', email: 'ben.smith@cflondon.co.uk', name: 'Ben Smith', division: 'Rx', w1_division: 'Rx', w2_division: 'Scaled', w3_division: 'Rx', gender: 'M', age: 32, w1: 100, w2: 310, w3: 190 }, // Mixed: Scaled for w2
+    { uid: 'sarah.jones', email: 'sarah.jones@cflondon.co.uk', name: 'Sarah Jones', division: 'Rx', w1_division: 'Rx', w2_division: 'Rx', w3_division: 'Scaled', gender: 'F', age: 29, w1: 105, w2: 290, w3: 205 }, // Mixed: Scaled for w3
+    { uid: 'laura.white', email: 'laura.white@cflondon.co.uk', name: 'Laura White', division: 'Rx', w1_division: 'Rx', w2_division: 'Rx', w3_division: 'Rx', gender: 'F', age: 31, w1: 95, w2: 320, w3: 195 },
+    { uid: 'emma.thompson', email: 'emma.thompson@cflondon.co.uk', name: 'Emma Thompson', division: 'Scaled', w1_division: 'Scaled', w2_division: 'Scaled', w3_division: 'Foundations', gender: 'F', age: 28, w1: 80, w2: 350, w3: 180 }, // Mixed: Foundations for w3
+    { uid: 'tom.brown', email: 'tom.brown@cflondon.co.uk', name: 'Tom Brown', division: 'Scaled', w1_division: 'Scaled', w2_division: 'Rx', w3_division: 'Scaled', gender: 'M', age: 27, w1: 85, w2: 340, w3: 185 }, // Mixed: Rx for w2
+    { uid: 'peter.green', email: 'peter.green@cflondon.co.uk', name: 'Peter Green', division: 'Foundations', w1_division: 'Foundations', w2_division: 'Foundations', w3_division: 'Foundations', gender: 'M', age: 45, w1: 60, w2: 400, w3: 150 },
+    { uid: 'alice.blue', email: 'alice.blue@cflondon.co.uk', name: 'Alice Blue', division: 'Foundations', w1_division: 'Foundations', w2_division: 'Scaled', w3_division: 'Foundations', gender: 'F', age: 42, w1: 55, w2: 410, w3: 145 }, // Mixed: Scaled for w2
+    { uid: 'missing.score', email: 'missing.score@cflondon.co.uk', name: 'Missing Score', division: 'Rx', w1_division: 'Rx', w2_division: 'Rx', w3_division: 'Rx', gender: 'M', age: 25, w1: 100, w2: 0, w3: 0 }, // Missing w2, w3
   ];
 
   for (const data of cflondonAthletes) {
@@ -174,6 +183,9 @@ const seed = async () => {
     await db.collection('cf_leaderboard_athletes').doc(data.uid).set({
       name: data.name,
       division: data.division,
+      w1_division: data.w1_division,
+      w2_division: data.w2_division,
+      w3_division: data.w3_division,
       gender: data.gender,
       age: data.age,
       gymId: cflondonGymId,
@@ -192,9 +204,9 @@ const seed = async () => {
 
   // Create Athletes for CFREADING
   const cfreadingAthletes = [
-    { uid: 'mark.johnson', email: 'mark.johnson@cfreading.co.uk', name: 'Mark Johnson', division: 'Rx', gender: 'M', age: 33, w1: 108, w2: 295, w3: 208 },
-    { uid: 'chloe.davis', email: 'chloe.davis@cfreading.co.uk', name: 'Chloe Davis', division: 'Rx', gender: 'F', age: 26, w1: 112, w2: 285, w3: 212 },
-    { uid: 'sam.white', email: 'sam.white@cfreading.co.uk', name: 'Sam White', division: 'Scaled', gender: 'M', age: 30, w1: 82, w2: 345, w3: 182 },
+    { uid: 'mark.johnson', email: 'mark.johnson@cfreading.co.uk', name: 'Mark Johnson', division: 'Rx', w1_division: 'Rx', w2_division: 'Rx', w3_division: 'Rx', gender: 'M', age: 33, w1: 108, w2: 295, w3: 208 },
+    { uid: 'chloe.davis', email: 'chloe.davis@cfreading.co.uk', name: 'Chloe Davis', division: 'Rx', w1_division: 'Scaled', w2_division: 'Rx', w3_division: 'Rx', gender: 'F', age: 26, w1: 112, w2: 285, w3: 212 }, // Mixed: Scaled for w1
+    { uid: 'sam.white', email: 'sam.white@cfreading.co.uk', name: 'Sam White', division: 'Scaled', w1_division: 'Scaled', w2_division: 'Scaled', w3_division: 'Scaled', gender: 'M', age: 30, w1: 82, w2: 345, w3: 182 },
   ];
 
   for (const data of cfreadingAthletes) {
@@ -202,6 +214,9 @@ const seed = async () => {
     await db.collection('cf_leaderboard_athletes').doc(data.uid).set({
       name: data.name,
       division: data.division,
+      w1_division: data.w1_division,
+      w2_division: data.w2_division,
+      w3_division: data.w3_division,
       gender: data.gender,
       age: data.age,
       gymId: cfreadingGymId,

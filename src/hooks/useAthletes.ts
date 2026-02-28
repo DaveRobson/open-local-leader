@@ -48,6 +48,9 @@ export function useAthletes(viewState: ViewState, filterGym: string) {
                             w2: docData.w2 || 0,
                             w3: docData.w3 || 0,
                             division: docData.division || 'Scaled',
+                            w1_division: docData.w1_division || docData.division || 'Scaled',
+                            w2_division: docData.w2_division || docData.division || 'Scaled',
+                            w3_division: docData.w3_division || docData.division || 'Scaled',
                             gender: docData.gender || 'M',
                             role: docData.role || 'member',
                         } as Athlete;
