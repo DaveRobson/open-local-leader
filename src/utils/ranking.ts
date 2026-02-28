@@ -175,7 +175,10 @@ export const calculateRankings = (
     }
 
     // 4. Apply user's filters to the fully processed list
-    let filtered = processed;
+    // When workouts are live, hide athletes who haven't submitted any scores yet.
+    let filtered = liveWorkouts.length > 0
+        ? processed.filter(a => a.participation > 0)
+        : processed;
     if (filterDivision !== 'all') {
         filtered = filtered.filter(a => a.division === filterDivision);
     }

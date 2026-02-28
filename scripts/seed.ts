@@ -176,6 +176,7 @@ const seed = async () => {
     { uid: 'peter.green', email: 'peter.green@cflondon.co.uk', name: 'Peter Green', division: 'Foundations', w1_division: 'Foundations', w2_division: 'Foundations', w3_division: 'Foundations', gender: 'M', age: 45, w1: 60, w2: 400, w3: 150 },
     { uid: 'alice.blue', email: 'alice.blue@cflondon.co.uk', name: 'Alice Blue', division: 'Foundations', w1_division: 'Foundations', w2_division: 'Scaled', w3_division: 'Foundations', gender: 'F', age: 42, w1: 55, w2: 410, w3: 145 }, // Mixed: Scaled for w2
     { uid: 'missing.score', email: 'missing.score@cflondon.co.uk', name: 'Missing Score', division: 'Rx', w1_division: 'Rx', w2_division: 'Rx', w3_division: 'Rx', gender: 'M', age: 25, w1: 100, w2: 0, w3: 0 }, // Missing w2, w3
+    { uid: 'no.scores', email: 'no.scores@cflondon.co.uk', name: 'No Scores Yet', division: 'Scaled', w1_division: 'Scaled', w2_division: 'Scaled', w3_division: 'Scaled', gender: 'F', age: 22, w1: 0, w2: 0, w3: 0 }, // Zero scores — should be hidden when live workouts exist
   ];
 
   for (const data of cflondonAthletes) {
