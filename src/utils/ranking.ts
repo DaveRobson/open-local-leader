@@ -175,10 +175,7 @@ export const calculateRankings = (
     }
 
     // 4. Apply user's filters to the fully processed list
-    // When workouts are live, hide athletes who haven't submitted any scores yet.
-    let filtered = liveWorkouts.length > 0
-        ? processed.filter(a => a.participation > 0)
-        : processed;
+    let filtered = processed;
     if (filterDivision !== 'all') {
         filtered = filtered.filter(a => a.division === filterDivision);
     }
@@ -192,8 +189,12 @@ export const calculateRankings = (
         filtered = filtered.filter(a => a.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
 
-    // 5. Sort the final list for display
+    // 5. Sort the final list for display.
+    // Athletes with no scores at all always sink to the bottom regardless of live workout state.
     filtered.sort((a, b) => {
+        const aHasScore = getScore(a.w1) > 0 || getScore(a.w2) > 0 || getScore(a.w3) > 0;
+        const bHasScore = getScore(b.w1) > 0 || getScore(b.w2) > 0 || getScore(b.w3) > 0;
+        if (aHasScore !== bHasScore) return aHasScore ? -1 : 1;
         if (b.participation !== a.participation) return b.participation - a.participation;
         return a.totalPoints - b.totalPoints;
     });
