@@ -119,15 +119,17 @@ export const calculateRankings = (
             Foundations: processed.filter(a => (a[divKey] || a.division) === 'Foundations'),
         };
 
-        // Sort and rank within each division
+        // Sort and rank within each division — only scored athletes get a rank.
+        // Unscored athletes keep rank as undefined and sort to the bottom of workout tabs.
         (['Rx', 'Scaled', 'Foundations'] as const).forEach(div => {
             const group = divisions[div];
             sortByPerformance(group, w, config);
+            const scored = group.filter(a => getScore(a[w]) > 0);
 
             let currentRank = 1;
-            for (let i = 0; i < group.length; i++) {
-                const athlete = group[i];
-                const prevAthlete = group[i - 1];
+            for (let i = 0; i < scored.length; i++) {
+                const athlete = scored[i];
+                const prevAthlete = scored[i - 1];
                 if (i > 0 && scoresAreEqual(athlete, prevAthlete, w, config)) {
                     athlete[`${w}_rank`] = prevAthlete[`${w}_rank`];
                 } else {
