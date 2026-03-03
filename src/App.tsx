@@ -1469,19 +1469,17 @@ export default function App() {
                                             )}
                                         </div>
 
-                                        {isAdmin && (
-                                            <div className="mb-2">
-                                                <Select
-                                                    label="Division"
-                                                    options={[{label: 'Rx', value: 'Rx'}, {label: 'Scaled', value: 'Scaled'}, {label: 'Foundations', value: 'Foundations'}]}
-                                                    value={scoreForm[`${workoutKey}_division` as keyof ScoreForm] as string}
-                                                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setScoreForm({
-                                                        ...scoreForm,
-                                                        [`${workoutKey}_division`]: e.target.value as 'Rx' | 'Scaled' | 'Foundations'
-                                                    })}
-                                                />
-                                            </div>
-                                        )}
+                                        <div className="mb-2">
+                                            <Select
+                                                label="Division"
+                                                options={[{label: 'Rx', value: 'Rx'}, {label: 'Scaled', value: 'Scaled'}, {label: 'Foundations', value: 'Foundations'}]}
+                                                value={scoreForm[`${workoutKey}_division` as keyof ScoreForm] as string}
+                                                onChange={(e: ChangeEvent<HTMLSelectElement>) => setScoreForm({
+                                                    ...scoreForm,
+                                                    [`${workoutKey}_division`]: e.target.value as 'Rx' | 'Scaled' | 'Foundations'
+                                                })}
+                                            />
+                                        </div>
 
                                         {config.description && (
                                             <p className="text-xs text-zinc-400 mb-3 whitespace-pre-line">{config.description}</p>
