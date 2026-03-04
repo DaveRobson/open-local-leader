@@ -1500,9 +1500,14 @@ export default function App() {
                                         )}
 
                                         {config.scoringClosed && !isAdmin ? (
-                                            <div className="flex items-center gap-2 py-3 text-zinc-500 text-xs">
-                                                <Lock size={14} className="text-red-400/70" />
-                                                <span>Scoring is closed for this workout</span>
+                                            <div className="py-2">
+                                                <p className="text-lg font-bold text-white mb-1.5">
+                                                    {formatScoreDisplay(editingAthlete, workoutKey)}
+                                                </p>
+                                                <div className="flex items-center gap-2 text-zinc-500 text-xs">
+                                                    <Lock size={14} className="text-red-400/70" />
+                                                    <span>Scoring is closed for this workout</span>
+                                                </div>
                                             </div>
                                         ) : (
                                             <>
