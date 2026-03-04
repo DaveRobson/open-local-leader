@@ -1499,101 +1499,106 @@ export default function App() {
                                             <p className="text-xs text-zinc-400 mb-3 whitespace-pre-line">{config.description}</p>
                                         )}
 
-                                        {config.scoringClosed && !isAdmin ? (
-                                            <div className="flex items-center gap-2 py-3 text-zinc-500 text-xs">
-                                                <Lock size={14} className="text-red-400/70" />
-                                                <span>Scoring is closed for this workout</span>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                {config.scoreType === 'time' && (
-                                                    <TimeInput
-                                                        value={scoreValue as number}
-                                                        onChange={(seconds) => setScoreForm({...scoreForm, [workoutKey]: seconds})}
-                                                        placeholder="MM:SS"
+                                        {config.scoreType === 'time' && (
+                                            <TimeInput
+                                                value={scoreValue as number}
+                                                onChange={(seconds) => setScoreForm({...scoreForm, [workoutKey]: seconds})}
+                                                placeholder="MM:SS"
+                                                disabled={config.scoringClosed && !isAdmin}
+                                            />
+                                        )}
+
+                                        {config.scoreType === 'time_cap_reps' && (
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`${workoutKey}_capped_check`}
+                                                        checked={scoreForm[cappedKey] as boolean || false}
+                                                        onChange={(e) => setScoreForm({
+                                                            ...scoreForm,
+                                                            [cappedKey]: e.target.checked,
+                                                            [workoutKey]: '' // Clear score when toggling
+                                                        })}
+                                                        disabled={config.scoringClosed && !isAdmin}
+                                                        className="h-4 w-4 text-gold-600 bg-zinc-800 border-zinc-700 rounded focus:ring-gold-500 disabled:opacity-50"
                                                     />
-                                                )}
-
-                                                {config.scoreType === 'time_cap_reps' && (
-                                                    <div className="space-y-2">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <input
-                                                                type="checkbox"
-                                                                id={`${workoutKey}_capped_check`}
-                                                                checked={scoreForm[cappedKey] as boolean || false}
-                                                                onChange={(e) => setScoreForm({
-                                                                    ...scoreForm,
-                                                                    [cappedKey]: e.target.checked,
-                                                                    [workoutKey]: '' // Clear score when toggling
-                                                                })}
-                                                                className="h-4 w-4 text-gold-600 bg-zinc-800 border-zinc-700 rounded focus:ring-gold-500"
-                                                            />
-                                                            <label htmlFor={`${workoutKey}_capped_check`} className="text-xs text-zinc-400">
-                                                                Did not finish (time capped)
-                                                            </label>
-                                                        </div>
-                                                        {scoreForm[cappedKey] ? (
-                                                            <>
-                                                                <input
-                                                                    type="number"
-                                                                    step="1"
-                                                                    placeholder={`Reps completed (cap: ${config.timeCap ? Math.floor(config.timeCap / 60) : '?'} min)`}
-                                                                    className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-gold-500 outline-none"
-                                                                    value={scoreValue as string}
-                                                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
-                                                                        ...scoreForm,
-                                                                        [workoutKey]: e.target.value
-                                                                    })}
-                                                                />
-                                                                <div className="pt-2 border-t border-zinc-800">
-                                                                    <label className="text-xs text-zinc-500 block mb-1">
-                                                                        {config.tiebreakerLabel || 'Tiebreaker time (for same reps)'}
-                                                                    </label>
-                                                                    <TimeInput
-                                                                        value={scoreForm[tiebreakerKey] as number}
-                                                                        onChange={(seconds) => setScoreForm({...scoreForm, [tiebreakerKey]: seconds})}
-                                                                        placeholder="MM:SS"
-                                                                    />
-                                                                </div>
-                                                            </>
-                                                        ) : (
-                                                            <TimeInput
-                                                                value={scoreValue as number}
-                                                                onChange={(seconds) => setScoreForm({...scoreForm, [workoutKey]: seconds})}
-                                                                placeholder="Finish time (MM:SS)"
-                                                            />
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {(config.scoreType === 'reps' || config.scoreType === 'weight') && (
-                                                    <div className="space-y-2">
+                                                    <label htmlFor={`${workoutKey}_capped_check`} className="text-xs text-zinc-400">
+                                                        Did not finish (time capped)
+                                                    </label>
+                                                </div>
+                                                {scoreForm[cappedKey] ? (
+                                                    <>
                                                         <input
                                                             type="number"
-                                                            step="any"
-                                                            placeholder={config.unit || '0'}
-                                                            className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:outline-none focus:border-gold-500 outline-none"
+                                                            step="1"
+                                                            placeholder={`Reps completed (cap: ${config.timeCap ? Math.floor(config.timeCap / 60) : '?'} min)`}
+                                                            className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:border-gold-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                                             value={scoreValue as string}
+                                                            disabled={config.scoringClosed && !isAdmin}
                                                             onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
                                                                 ...scoreForm,
                                                                 [workoutKey]: e.target.value
                                                             })}
                                                         />
-                                                        {config.hasTiebreaker && (
-                                                            <div className="pt-2 border-t border-zinc-800">
-                                                                <label className="text-xs text-zinc-500 block mb-1">
-                                                                    {config.tiebreakerLabel || 'Tiebreaker time'}
-                                                                </label>
-                                                                <TimeInput
-                                                                    value={scoreForm[tiebreakerKey] as number}
-                                                                    onChange={(seconds) => setScoreForm({...scoreForm, [tiebreakerKey]: seconds})}
-                                                                    placeholder="MM:SS"
-                                                                />
-                                                            </div>
-                                                        )}
+                                                        <div className="pt-2 border-t border-zinc-800">
+                                                            <label className="text-xs text-zinc-500 block mb-1">
+                                                                {config.tiebreakerLabel || 'Tiebreaker time (for same reps)'}
+                                                            </label>
+                                                            <TimeInput
+                                                                value={scoreForm[tiebreakerKey] as number}
+                                                                onChange={(seconds) => setScoreForm({...scoreForm, [tiebreakerKey]: seconds})}
+                                                                placeholder="MM:SS"
+                                                                disabled={config.scoringClosed && !isAdmin}
+                                                            />
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <TimeInput
+                                                        value={scoreValue as number}
+                                                        onChange={(seconds) => setScoreForm({...scoreForm, [workoutKey]: seconds})}
+                                                        placeholder="Finish time (MM:SS)"
+                                                        disabled={config.scoringClosed && !isAdmin}
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {(config.scoreType === 'reps' || config.scoreType === 'weight') && (
+                                            <div className="space-y-2">
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    placeholder={config.unit || '0'}
+                                                    className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-white focus:outline-none focus:border-gold-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    value={scoreValue as string}
+                                                    disabled={config.scoringClosed && !isAdmin}
+                                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setScoreForm({
+                                                        ...scoreForm,
+                                                        [workoutKey]: e.target.value
+                                                    })}
+                                                />
+                                                {config.hasTiebreaker && (
+                                                    <div className="pt-2 border-t border-zinc-800">
+                                                        <label className="text-xs text-zinc-500 block mb-1">
+                                                            {config.tiebreakerLabel || 'Tiebreaker time'}
+                                                        </label>
+                                                        <TimeInput
+                                                            value={scoreForm[tiebreakerKey] as number}
+                                                            onChange={(seconds) => setScoreForm({...scoreForm, [tiebreakerKey]: seconds})}
+                                                            placeholder="MM:SS"
+                                                            disabled={config.scoringClosed && !isAdmin}
+                                                        />
                                                     </div>
                                                 )}
-                                            </>
+                                            </div>
+                                        )}
+
+                                        {config.scoringClosed && !isAdmin && (
+                                            <div className="flex items-center gap-2 mt-2 text-zinc-500 text-xs">
+                                                <Lock size={14} className="text-red-400/70" />
+                                                <span>Scoring is closed for this workout</span>
+                                            </div>
                                         )}
                                     </div>
                                 );
