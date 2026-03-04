@@ -11,6 +11,7 @@ export interface WorkoutConfig {
     hasTiebreaker?: boolean;
     tiebreakerLabel?: string; // e.g., "Time after round 2"
     published?: boolean;    // Whether workout is visible to athletes
+    scoringClosed?: boolean;   // When true, non-admins cannot submit/edit scores for this workout
 }
 
 export interface WorkoutConfigs {

@@ -1,5 +1,5 @@
 import { type FC, type ChangeEvent, useState, useEffect } from 'react';
-import { Settings, Eye, EyeOff } from 'lucide-react';
+import { Settings, Eye, EyeOff, Lock, LockOpen } from 'lucide-react';
 import Modal from './Modal';
 import Select from './Select';
 import Input from './Input';
@@ -59,18 +59,34 @@ const WorkoutConfigModal: FC<WorkoutConfigModalProps> = ({ isOpen, onClose, work
                         <Settings size={16} className={config.published ? 'text-gold-500' : 'text-zinc-500'} />
                         <h4 className="text-sm font-bold text-white uppercase tracking-wide">{config.name}</h4>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => handleConfigChange(workoutId, 'published', !config.published)}
-                        className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                            config.published
-                                ? 'bg-gold-500/20 text-gold-400 border border-gold-500/30'
-                                : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-600'
-                        }`}
-                    >
-                        {config.published ? <Eye size={12} /> : <EyeOff size={12} />}
-                        {config.published ? 'Published' : 'Draft'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => handleConfigChange(workoutId, 'published', !config.published)}
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                config.published
+                                    ? 'bg-gold-500/20 text-gold-400 border border-gold-500/30'
+                                    : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-600'
+                            }`}
+                        >
+                            {config.published ? <Eye size={12} /> : <EyeOff size={12} />}
+                            {config.published ? 'Published' : 'Draft'}
+                        </button>
+                        {config.published && (
+                            <button
+                                type="button"
+                                onClick={() => handleConfigChange(workoutId, 'scoringClosed', !config.scoringClosed)}
+                                className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                    config.scoringClosed
+                                        ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                        : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-zinc-600'
+                                }`}
+                            >
+                                {config.scoringClosed ? <Lock size={12} /> : <LockOpen size={12} />}
+                                {config.scoringClosed ? 'Scoring Closed' : 'Scoring Open'}
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="mb-4">
